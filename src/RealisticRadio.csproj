@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{C69C954B-E621-46FC-AF5B-1365F1A03E19}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>RealisticRadio</RootNamespace>
+    <AssemblyName>RealisticRadio</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+    <!-- Debug - тестовая сборка: сразу в игру (Kerbal Space Program Sol), с pdb и ресурсами мода -->
+<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\..\..\SteamLibrary\steamapps\common\Kerbal Space Program Sol\GameData\RealisticRadio\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>send</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <GenerateSerializationAssemblies>On</GenerateSerializationAssemblies>
+  </PropertyGroup>
+    <!-- Release - готовый релиз: DLL рядом с конфигами в ..\GameData\RealisticRadio, без pdb -->
+<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>none</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\GameData\RealisticRadio\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>..\..\..\SteamLibrary\steamapps\common\Kerbal Space Program Sol\KSP_x64_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>..\..\..\SteamLibrary\steamapps\common\Kerbal Space Program Sol\KSP_x64_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\..\..\SteamLibrary\steamapps\common\Kerbal Space Program Sol\KSP_x64_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>..\..\..\SteamLibrary\steamapps\common\Kerbal Space Program Sol\KSP_x64_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>..\..\..\SteamLibrary\steamapps\common\Kerbal Space Program Sol\KSP_x64_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>..\..\..\SteamLibrary\steamapps\common\Kerbal Space Program Sol\KSP_x64_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>..\..\..\SteamLibrary\steamapps\common\Kerbal Space Program Sol\KSP_x64_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AntennaCatalog.cs" />
+    <Compile Include="DsnManager.cs" />
+    <Compile Include="DsnMapIcons.cs" />
+    <Compile Include="LinkCalc.cs" />
+    <Compile Include="LinkView.cs" />
+    <Compile Include="ModuleRadioAntenna.cs" />
+    <Compile Include="ModuleRadioLink.cs" />
+    <Compile Include="RadioCategories.cs" />
+    <Compile Include="RadioCommNetwork.cs" />
+    <Compile Include="RadioControlLock.cs" />
+    <Compile Include="RadioHooks.cs" />
+    <Compile Include="RadioMath.cs" />
+    <Compile Include="RadioPhysics.cs" />
+    <Compile Include="RadioPrefabs.cs" />
+    <Compile Include="RadioRangeModel.cs" />
+    <Compile Include="RadioScale.cs" />
+    <Compile Include="ScienceTransfer.cs" />
+    <Compile Include="RadioRuntime.cs" />
+    <Compile Include="RadioSettings.cs" />
+    <Compile Include="RadioWindow.cs" />
+    <Compile Include="StationHomes.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Конфиги и текстуры мода: хранятся в репозитории, при сборке копируются в папку мода рядом с DLL -->
+    <None Include="..\GameData\RealisticRadio\**\*.*" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="DeployGameData" AfterTargets="Build" Condition=" '$(Configuration)' == 'Debug' ">
+    <ItemGroup>
+      <!-- Без DLL и pdb: в GameData проекта лежит релизная DLL, она не должна затирать тестовую -->
+      <ModFile Include="..\GameData\RealisticRadio\**\*.*" Exclude="..\GameData\RealisticRadio\**\*.dll;..\GameData\RealisticRadio\**\*.pdb" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ModFile)" DestinationFolder="$(OutputPath)%(RecursiveDir)" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

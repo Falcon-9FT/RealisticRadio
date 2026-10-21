@@ -6,6 +6,22 @@
 ModuleManager. Дополнение **RealisticRadioPlus** (SDR, ЦУП, сеть передачи данных) публикуется отдельно и требует
 этот мод.
 
+## Совместимость
+
+**Требуется:** Kerbal Space Program 1.12.x, ModuleManager 4.2.x.
+
+**Пакеты планет**
+
+| Пакет | Поддержка |
+|---|---|
+| Стоковая система | да: масштаб Кербола (k = 10.6), кербинская сеть станций |
+| Sol (Real / Quarter / Stock) | да: масштаб из `SystemScale` (1 / 4 / 9), земные станции на настоящих местах |
+| Real Solar System | да: k = 1, земные станции |
+| Другие пакеты (KSRSS, JNSQ, OPM, GPP...) | работают, но масштаб берётся как у Кербола; станции - кербинские, а если Кербина нет - на родной планете |
+
+**Антенны других модов** переводятся на расчёт мода автоматически (`AntennasAuto.cfg`) - у любого мода со
+стоковым `ModuleDataTransmitter`. Проверено: Bluedog Design Bureau, Tantares, RN Soviet Probes и Rockets, Tundra
+Exploration, Starship Expansion Project, HabTech2, JX2 Antenna, ReStock+, CommNet Antennas Extension, IQ Blue Moon.
 ## Как это работает
 
 Подробно - в [вики](https://github.com/Falcon-9FT/RealAntennasKSP/wiki).

@@ -22,6 +22,12 @@ ModuleManager. Дополнение **RealisticRadioPlus** (SDR, ЦУП, сет�
 **Антенны других модов** переводятся на расчёт мода автоматически (`AntennasAuto.cfg`) - у любого мода со
 стоковым `ModuleDataTransmitter`. Проверено: Bluedog Design Bureau, Tantares, RN Soviet Probes и Rockets, Tundra
 Exploration, Starship Expansion Project, HabTech2, JX2 Antenna, ReStock+, CommNet Antennas Extension, IQ Blue Moon.
+
+**Несовместимы** - моды, которые сами заменяют сеть CommNet или передачу науки:
+- RealAntennas
+- RemoteTech (плагин; детали RemoteTech без плагина работают)
+- CommNet Constellation
+
 ## Как это работает
 
 Подробно - в [вики](https://github.com/Falcon-9FT/RealAntennasKSP/wiki).

@@ -1,92 +1,95 @@
 # RealisticRadio
 
-Реалистичная радиосвязь для Kerbal Space Program 1.12 вместо стокового CommNet. Связь каждой линии
-определяется энергетическим бюджетом радиолинии: мощность и антенна передатчика, потери на трассе, антенна и
-шумовая температура приёмника, отношение C/N0 и выбранный по нему режим модуляции и кодирования. Нужен только
-ModuleManager. Дополнение **RealisticRadioPlus** (SDR, ЦУП, сеть передачи данных) публикуется отдельно и требует
-этот мод.
+*[Русская версия](README.ru.md)*
 
-## Совместимость
+Realistic radio communications for Kerbal Space Program 1.12, replacing the stock CommNet model. Every link is decided
+by a radio link budget: transmitter power and antenna, path loss, receiving antenna and system noise temperature, the
+resulting C/N0, and the modulation and coding mode it supports. Only ModuleManager is required.
 
-**Требуется:** Kerbal Space Program 1.12.x, ModuleManager 4.2.x.
+The in-game interface is currently in Russian.
 
-**Пакеты планет**
+## Compatibility
 
-| Пакет | Поддержка |
+**Required:** Kerbal Space Program 1.12.x, ModuleManager 4.2.x.
+
+**Planet packs**
+
+| Pack | Support |
 |---|---|
-| Стоковая система | да: масштаб Кербола (k = 10.6), кербинская сеть станций |
-| Sol (Real / Quarter / Stock) | да: масштаб из `SystemScale` (1 / 4 / 9), земные станции на настоящих местах |
-| Real Solar System | да: k = 1, земные станции |
-| Другие пакеты (KSRSS, JNSQ, OPM, GPP...) | работают, но масштаб берётся как у Кербола; станции - кербинские, а если Кербина нет - на родной планете |
+| Stock system | yes: Kerbol scale (k = 10.6), Kerbin station network |
+| Sol (Real / Quarter / Stock) | yes: scale from `SystemScale` (1 / 4 / 9), Earth stations at their real locations |
+| Real Solar System | yes: k = 1, Earth stations |
+| Other packs (KSRSS, JNSQ, OPM, GPP...) | work, but Kerbol scale is used; Kerbin stations, or on the home planet if there is no Kerbin |
 
-**Антенны других модов** переводятся на расчёт мода автоматически (`AntennasAuto.cfg`) - у любого мода со
-стоковым `ModuleDataTransmitter`. Проверено: Bluedog Design Bureau, Tantares, RN Soviet Probes и Rockets, Tundra
-Exploration, Starship Expansion Project, HabTech2, JX2 Antenna, ReStock+, CommNet Antennas Extension, IQ Blue Moon.
+**Antennas from other mods** switch to this calculation automatically (`AntennasAuto.cfg`), for any mod using the stock
+`ModuleDataTransmitter`. Checked: Bluedog Design Bureau, Tantares, RN Soviet Probes and Rockets, Tundra Exploration,
+Starship Expansion Project, HabTech2, JX2 Antenna, ReStock+, CommNet Antennas Extension, IQ Blue Moon.
 
-**Несовместимы** - моды, которые сами заменяют сеть CommNet или передачу науки:
+**Incompatible:** mods that replace the CommNet network or science transmission themselves:
 - RealAntennas
-- RemoteTech (плагин; детали RemoteTech без плагина работают)
+- RemoteTech (the plugin; RemoteTech parts without the plugin work)
 - CommNet Constellation
 
-## Как это работает
+## How it works
 
-Подробно - в [вики](https://github.com/Falcon-9FT/RealAntennasKSP/wiki).
+Full details are in the [wiki](https://github.com/Falcon-9FT/RealAntennasKSP/wiki).
 
-**Бюджет линии.** Для каждого участка считается мощность на входе приёмника:
-`P_rx = P_tx − L_согл + G_tx − L_навед − L_fs − L_дифр − L_атм − L_корона + G_rx − L_тракт − L_навед`,
-где `L_fs = 20·lg d[км] + 20·lg f[МГц] + 32.44` - потери в свободном пространстве.
-Отношение несущая/шум: `C/N0 = P_rx − 10·lg(k·T_sys)`.
+**Link budget.** For each hop the mod computes the power at the receiver input:
+`P_rx = P_tx − L_match + G_tx − L_point − L_fs − L_diff − L_atm − L_corona + G_rx − L_feed − L_point`,
+where `L_fs = 20·lg d[km] + 20·lg f[MHz] + 32.44` is the free-space path loss.
+Carrier-to-noise density: `C/N0 = P_rx − 10·lg(k·T_sys)`.
 
-**Антенны.** Усиление параболы `G = η·(πD/λ)²`, диаграмма направленности - эталонная ITU-R F.699 (главный лепесток,
-первый боковой, огибающая боковых `32 − 25·lg θ`, задний уровень); отсюда потери наведения. Согласование с фидером
-задано полосой резонанса (КСВ 2 на краях): вне полосы растут потери на отражение, облучатель тарелки не пропускает
-волну ниже критической частоты. Входные фильтры станций и ретрансляторов подавляют чужие диапазоны.
+**Antennas.** Parabolic gain `G = η·(πD/λ)²`. The radiation pattern is the ITU-R F.699 reference pattern (main lobe,
+first sidelobe, sidelobe envelope `32 − 25·lg θ`, back level), which gives the pointing loss. Feed-line matching follows
+a resonant band (VSWR 2 at the edges): outside it, reflection losses grow, and a dish feed passes nothing below its
+waveguide cutoff. Input filters at stations and relays reject other bands.
 
-**Трасса.**
-- Препятствия: каждое тело на пути луча - сфера; затухание за краем считается дифракцией по ITU-R P.526
-  (параметр Френеля-Кирхгофа ν, поправка на скруглённое препятствие), с учётом высоты рельефа под концами линии.
-- Атмосфера: зенитное затухание ясного неба по частоте (рост к линии водяного пара 22 ГГц), умноженное на
-  воздушную массу по формуле Кастена-Янга и на отношение давления у поверхности к земному.
-- Солнечная корона: дополнительное затухание по прицельному расстоянию ρ луча от центра Солнца; зона влияния
-  `ρ_max = 12·√(8420 / f[МГц])` R☉ (на низких частотах шире), внутри неё затухание растёт квадратично по
-  `(ρ_max − ρ) / (ρ_max − 1)` до 60 дБ у фотосферы.
+**Signal path.**
+- Obstructions: every body on the path is a sphere, and loss beyond its edge is computed as diffraction per ITU-R P.526
+  (Fresnel-Kirchhoff parameter ν, with a correction for a rounded obstacle), using the terrain height under the ends of
+  the link.
+- Atmosphere: clear-sky zenith attenuation by frequency (rising towards the 22 GHz water vapour line), multiplied by the
+  Kasten-Young airmass and by the ratio of surface pressure to Earth's.
+- Solar corona: extra attenuation by the closest approach ρ of the beam to the centre of the Sun. The affected zone is
+  `ρ_max = 12·√(8420 / f[MHz])` R☉ (wider at low frequencies); inside it the loss grows quadratically with
+  `(ρ_max − ρ) / (ρ_max − 1)`, up to 60 dB at the photosphere.
 
-**Шум приёмника.** `T_sys = T_тракт + T_неба + T_тел + T_атм`:
-- небо: галактический фон `60·λ^2.55` + реликтовое излучение 2.725 К;
-- тела в луче: Солнце с яркостной температурой `5672·λ[мм]^0.24517` К (DSN 810-005, модуль 105), планеты - по
-  температуре атмосферы или равновесной; доля - по телесному углу тела (всенаправленная антенна) или по площади
-  в луче, ослабленной диаграммой F.699;
-- атмосфера над наземной антенной: `T_атм = 275·(1 − 10^(−L_атм/10))` К.
+**Receiver noise.** `T_sys = T_rx + T_sky + T_bodies + T_atm`:
+- sky: galactic background `60·λ^2.55` plus the 2.7 K cosmic microwave background;
+- bodies in the beam: the Sun with brightness temperature `5672·λ[mm]^0.24517` K (DSN 810-005, module 105), planets by
+  atmospheric or equilibrium temperature; the share collected follows the body's solid angle (omnidirectional antenna) or
+  its area in the beam, attenuated by the F.699 pattern;
+- atmosphere above a ground antenna: `T_atm = 275·(1 − 10^(−L_atm/10))` K.
 
-**Скорость.** Модем выбирает самый быстрый режим, порог которого `Es/N0` выдерживается в полосе канала (с запасом
-реализации 1 дБ): от BPSK с турбокодом 1/6 (−7 дБ) до 32APSK 9/10 (16 дБ), по таблицам DVB-S2 и CCSDS. Когда
-сигнала не хватает на всю полосу, символьная скорость снижается при самом помехоустойчивом режиме - до 10 бит/с;
-ниже (C/N0 ≈ 12 дБ·Гц) линии нет.
+**Data rate.** The modem picks the fastest mode whose `Es/N0` threshold holds in the channel bandwidth (with a 1 dB
+implementation margin): from BPSK with a rate 1/6 turbo code (−7 dB) to 32APSK 9/10 (16 dB), following the DVB-S2 and
+CCSDS tables. When the signal cannot fill the whole band, the symbol rate drops at the most robust mode, down to
+10 bit/s; below that (C/N0 ≈ 12 dB-Hz) there is no link.
 
-**Наземные станции.** Около 50 станций (DSN, ESA, Роскосмос, NASA NEN и другие) в `DsnStations.cfg`: координаты,
-диаметр, шумовая температура, диапазоны приёма и мощности передатчиков по диапазонам. Станция принимает только свои
-частоты; команды на борт может посылать другая станция сети (трёхсторонний режим), если принимающая не передаёт в
-диапазоне аппарата.
+**Ground stations.** About 50 stations (NASA DSN, ESA, Russian stations, NASA Near Space Network and others) in
+`DsnStations.cfg`: coordinates, diameter, noise temperature, receive bands and transmitter power per band. A station
+receives only its own frequencies. Commands may be sent by another station of the network (three-way mode) if the
+receiving one cannot transmit in the spacecraft's band.
 
-**CommNet.** Линию между аппаратом и станцией (или двумя аппаратами) решает этот расчёт: она есть, только если
-проходят и данные вниз, и команды вверх. Путь выбирается по наибольшей скорости узкого места, а не по стоковой
-«силе сигнала». Аппарат без раскрытых антенн мода связывается по стоковым правилам.
+**CommNet.** This calculation decides each link between a vessel and a station, or between two vessels: the link exists
+only if both data down and commands up get through. The route is chosen by the highest bottleneck data rate, not by the
+stock "signal strength". A vessel with no deployed antennas of this mod connects under the stock rules.
 
-**Масштаб системы.** Параметры антенн и передатчиков - настоящие, поэтому `L_fs` считается по расстоянию `d·k`,
-где `k` - во сколько раз система меньше настоящей: Sol по `SystemScale` (Real 1, Quarter 4, Stock 9), Real Solar
-System 1, система Кербола 10.6. Геометрия, доплер и задержка сигнала - по игровым расстояниям. Незнакомый пакет
-планет - предупреждение и `k` как у Кербола.
+**System scale.** Antenna and transmitter parameters are real, so `L_fs` uses the distance `d·k`, where `k` is how many
+times smaller the system is than the real one: Sol by `SystemScale` (Real 1, Quarter 4, Stock 9), Real Solar System 1,
+Kerbol system 10.6. Geometry, Doppler shift and signal delay use in-game distances. An unknown planet pack gets a warning
+and the Kerbol `k`.
 
-**Передача науки.** Данные уходят очередью со скоростью узкого места пути в игровом времени, в том числе при
-ускорении времени и для аппаратов в фоне. Питание передатчика `P = P_rf / 0.35 + 5 Вт` (1 ед. электричества =
-1 кДж). Наука начисляется по файлу целиком или по десятым частям.
+**Science transmission.** Data leaves through a queue at the bottleneck rate of the route, in game time, including during
+time warp and for vessels in the background. Transmitter power draw is `P = P_rf / 0.35 + 5 W` (1 unit of electric
+charge = 1 kJ). Science is credited per whole file or in tenths of a file.
 
-**Уровень сложности.** Без связи на сложном уровне отключается ручное управление (SAS и газ остаются). Лёгкий:
-скорость передачи науки ×10, без расхода электричества. Нормальный: при обрыве связи передача продолжается с места
-остановки. Средний и сложный: файл, передаваемый целиком, после обрыва передаётся заново.
+**Difficulty.** On Hard, a vessel with no link loses manual control (SAS and throttle remain). Easy: science transmission
+at ×10 speed with no electric charge used. Normal: after a dropout, transmission resumes where it stopped. Moderate and
+Hard: a file sent whole is sent again from the start after a dropout.
 
 ## Copyright
 
 Copyright (c) 2026 Falcon 9.
 
-Распространяется по лицензии GNU General Public License v3.0 - см. [LICENSE.txt](LICENSE.txt).
+Licensed under the GNU General Public License v3.0. See [LICENSE.txt](LICENSE.txt).

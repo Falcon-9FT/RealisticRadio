@@ -294,7 +294,7 @@ namespace RealisticRadio
             network.CommNet = new RadioCommNetwork();
             // Узлы, станции и тела сами добавятся в новую сеть по этому событию
             GameEvents.CommNet.OnNetworkInitialized.Fire();
-            Debug.Log("[RealisticRadio] CommNet: путь связи выбирается по скорости линий (через ретранслятор, если так быстрее)");
+            Debug.Log("[RealisticRadio] CommNet: routes are chosen by link speed (through a relay if that is faster)");
         }
     }
 }

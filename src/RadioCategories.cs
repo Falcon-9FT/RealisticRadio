@@ -43,15 +43,15 @@ namespace RealisticRadio
         // Полосы радиолюбителей и космической связи (IEEE для СВЧ)
         private static readonly Band[] bands =
         {
-            new Band("HF", "КВ: до 30 МГц", 0, 30),
-            new Band("VHF", "УКВ (VHF): 30–300 МГц", 30, 300),
-            new Band("UHF", "ДМВ (UHF): 300 МГц – 1 ГГц", 300, 1000),
-            new Band("L", "L: 1–2 ГГц", 1000, 2000),
-            new Band("S", "S: 2–4 ГГц", 2000, 4000),
-            new Band("C", "C: 4–8 ГГц", 4000, 8000),
-            new Band("X", "X: 8–12 ГГц", 8000, 12000),
-            new Band("Ku", "Ku: 12–18 ГГц", 12000, 18000),
-            new Band("Ka", "K и Ka: 18–40 ГГц", 18000, 40000)
+            new Band("HF", "#rr_cat_hf", 0, 30),
+            new Band("VHF", "#rr_cat_vhf", 30, 300),
+            new Band("UHF", "#rr_cat_uhf", 300, 1000),
+            new Band("L", "#rr_cat_l", 1000, 2000),
+            new Band("S", "#rr_cat_s", 2000, 4000),
+            new Band("C", "#rr_cat_c", 4000, 8000),
+            new Band("X", "#rr_cat_x", 8000, 12000),
+            new Band("Ku", "#rr_cat_ku", 12000, 18000),
+            new Band("Ka", "#rr_cat_ka", 18000, 40000)
         };
 
         private static readonly Dictionary<string, string> russian = new Dictionary<string, string>
@@ -112,7 +112,7 @@ namespace RealisticRadio
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[RealisticRadio] Вкладки антенн в редакторе: {ex}");
+                Debug.LogError($"[RealisticRadio] Editor antenna tabs: {ex}");
             }
         }
 
@@ -132,10 +132,10 @@ namespace RealisticRadio
                 catch (Exception ex)
                 {
                     // Одна странная деталь не должна оставить редактор без вкладок
-                    Debug.LogWarning($"[RealisticRadio] Вкладки антенн: деталь {available.name} пропущена: {ex.Message}");
+                    Debug.LogWarning($"[RealisticRadio] Antenna tabs: part {available.name} skipped: {ex.Message}");
                 }
             }
-            Debug.Log($"[RealisticRadio] Вкладки антенн: деталей с радио {parts.Count}");
+            Debug.Log($"[RealisticRadio] Antenna tabs: {parts.Count} parts with radio");
         }
 
         private static PartRadio Classify(Part prefab)
@@ -183,18 +183,18 @@ namespace RealisticRadio
 
         private void AddBandFilter()
         {
-            PartCategorizer.Category filter = PartCategorizer.AddCustomFilter("RealisticRadioBands", "Антенны: диапазоны частот",
+            PartCategorizer.Category filter = PartCategorizer.AddCustomFilter("RealisticRadioBands", Loc.T("#rr_cat_bands"),
                 Icon("filter-bands"), new Color(0.24f, 0.52f, 0.86f));
             foreach (Band band in bands)
             {
                 string id = band.id;
                 if (!HasAny(r => r.bands.Contains(id))) continue;
-                PartCategorizer.AddCustomSubcategoryFilter(filter, "band-" + id, band.title, Icon("band-" + id),
+                PartCategorizer.AddCustomSubcategoryFilter(filter, "band-" + id, Loc.T(band.title), Icon("band-" + id),
                     p => { PartRadio r = RadioOf(p); return r != null && r.bands.Contains(id); });
             }
             if (HasAny(r => r.unit))
             {
-                PartCategorizer.AddCustomSubcategoryFilter(filter, "band-units", "Радиоблоки и ответчики ADS-B", Icon("band-units"),
+                PartCategorizer.AddCustomSubcategoryFilter(filter, "band-units", Loc.T("#rr_cat_units"), Icon("band-units"),
                     p => { PartRadio r = RadioOf(p); return r != null && r.unit; });
             }
         }
@@ -205,12 +205,12 @@ namespace RealisticRadio
         {
             List<Target> targets = Targets();
             if (targets.Count == 0) return;
-            PartCategorizer.Category filter = PartCategorizer.AddCustomFilter("RealisticRadioReach", "Антенны: дальность связи (от 1 кбит/с)",
+            PartCategorizer.Category filter = PartCategorizer.AddCustomFilter("RealisticRadioReach", Loc.T("#rr_cat_reach"),
                 Icon("filter-reach"), new Color(0.88f, 0.6f, 0.2f));
             foreach (Target target in targets)
             {
                 double distance = target.distance;
-                PartCategorizer.AddCustomSubcategoryFilter(filter, "reach-" + target.id, $"{target.title} (до {Distance(distance)})", Icon(target.icon),
+                PartCategorizer.AddCustomSubcategoryFilter(filter, "reach-" + target.id, Loc.T("#rr_cat_reach_item", target.title, Distance(distance)), Icon(target.icon),
                     p => { PartRadio r = RadioOf(p); return r != null && r.reach >= distance; });
             }
         }
@@ -225,7 +225,7 @@ namespace RealisticRadio
             targets.Add(new Target
             {
                 id = "orbit",
-                title = home.bodyName == "Earth" ? "Околоземная орбита" : home.bodyName == "Kerbin" ? "Орбита Кербина" : "Орбита: " + NameOf(home),
+                title = home.bodyName == "Earth" ? Loc.T("#rr_cat_orbit_earth") : home.bodyName == "Kerbin" ? Loc.T("#rr_cat_orbit_kerbin") : Loc.T("#rr_cat_orbit", NameOf(home)),
                 icon = "body-orbit",
                 distance = OrbitReach(home)
             });
@@ -292,7 +292,7 @@ namespace RealisticRadio
         private static string NameOf(CelestialBody body)
         {
             string name;
-            if (russian.TryGetValue(body.bodyName, out name)) return name;
+            if (Loc.IsRussian && russian.TryGetValue(body.bodyName, out name)) return name;
             try
             {
                 return body.displayName.LocalizeRemoveGender();
@@ -305,11 +305,11 @@ namespace RealisticRadio
 
         private static string Distance(double meters)
         {
-            var ru = CultureInfo.GetCultureInfo("ru-RU");
+            CultureInfo culture = Loc.NumberCulture;
             double km = meters / 1000.0;
-            if (km < 1e6) return (km / 1e3).ToString(km < 1e5 ? "0.#" : "0", ru) + " тыс. км";
-            if (km < 1e9) return (km / 1e6).ToString(km < 1e8 ? "0.#" : "0", ru) + " млн км";
-            return (km / 1e9).ToString("0.##", ru) + " млрд км";
+            if (km < 1e6) return Loc.T("#rr_dist_thousand", (km / 1e3).ToString(km < 1e5 ? "0.#" : "0", culture));
+            if (km < 1e9) return Loc.T("#rr_dist_million", (km / 1e6).ToString(km < 1e8 ? "0.#" : "0", culture));
+            return Loc.T("#rr_dist_billion", (km / 1e9).ToString("0.##", culture));
         }
 
         private bool HasAny(Predicate<PartRadio> match)

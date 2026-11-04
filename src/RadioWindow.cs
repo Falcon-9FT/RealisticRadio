@@ -145,8 +145,8 @@ namespace RealisticRadio
             Vessel v = FlightGlobals.ActiveVessel;
             // Вкладки ядра, потом дополнения
             var names = new string[OWN_TABS + tabs.Count];
-            names[0] = "Аппарат";
-            names[1] = "Линия связи";
+            names[0] = Loc.T("#rr_win_vessel");
+            names[1] = Loc.T("#rr_win_link");
             for (int i = 0; i < tabs.Count; i++) names[OWN_TABS + i] = tabs[i].name;
             int current = Mathf.Clamp(tab, 0, names.Length - 1);
             int chosen = GUILayout.Toolbar(current, names);
@@ -165,7 +165,7 @@ namespace RealisticRadio
             }
             catch (Exception ex)
             {
-                GUILayout.Label($"<color=orange>Ошибка вкладки: {ex.Message}</color>");
+                GUILayout.Label(Loc.T("#rr_win_tab_error", ex.Message));
                 Debug.LogException(ex);
             }
             GUI.DragWindow();
@@ -177,7 +177,7 @@ namespace RealisticRadio
         {
             if (v == null)
             {
-                GUILayout.Label("Нет активного аппарата");
+                GUILayout.Label(Loc.T("#rr_no_vessel"));
                 return;
             }
             int next = 0;
@@ -202,7 +202,7 @@ namespace RealisticRadio
                 }
                 catch (Exception ex)
                 {
-                    GUILayout.Label($"<color=orange>Ошибка: {ex.Message}</color>");
+                    GUILayout.Label(Loc.T("#rr_win_error", ex.Message));
                     Debug.LogException(ex);
                 }
                 next++;
@@ -214,29 +214,29 @@ namespace RealisticRadio
             ModuleRadioLink activeRadio = ModuleRadioLink.FindBestRadio(v);
             if (activeRadio == null)
             {
-                GUILayout.Label("<color=orange>На аппарате нет антенн мода: связи с Землёй нет</color>");
+                GUILayout.Label(Loc.T("#rr_no_mod_antennas"));
                 return;
             }
             LinkResult link = activeRadio.currentLink;
-            GUILayout.Label($"Связь с Землёй: {(link.hasSignal ? "<color=#00FF00>есть</color>" : "<color=#FF0000>нет</color>")}");
+            GUILayout.Label(Loc.T("#rr_win_link_earth", Loc.T(link.hasSignal ? "#rr_yes_green" : "#rr_no_red")));
             if (link.hasSignal)
             {
                 GUILayout.Label(link.hopCount > 1
-                    ? $"Маршрут: <color=#FFA500>через ретрансляторы ({link.hopCount} участков)</color>, до: {link.dsnName}"
-                    : $"Маршрут: <color=#00FFFF>напрямую</color>, станция: {link.dsnName}");
+                    ? Loc.T("#rr_win_route_relays", link.hopCount, DsnManager.TitleOf(link.dsnName))
+                    : Loc.T("#rr_win_route_direct", DsnManager.TitleOf(link.dsnName)));
                 if (link.commandStation.Length > 0)
-                    GUILayout.Label($"Команды: с {link.commandStation} - станция приёма не может командовать бортом");
+                    GUILayout.Label(Loc.T("#rr_win_cmd_station", DsnManager.TitleOf(link.commandStation)));
             }
             string mode = link.mode != "" ? $", {link.mode}" : "";
-            GUILayout.Label($"Скорость: {RadioMath.FormatRate(link.speed)}{mode}; задержка {LinkView.Delay(link.ping / 2.0)} (туда-обратно {LinkView.Delay(link.ping)}); наведение {link.pointingError:F1}°");
+            GUILayout.Label(Loc.T("#rr_win_rate", RadioMath.FormatRate(link.speed), mode, LinkView.Delay(link.ping / 2.0), LinkView.Delay(link.ping), $"{link.pointingError:F1}"));
             // C/N0 не зависит от полосы: по нему видно, сколько осталось до самой медленной линии
             if (!double.IsInfinity(link.cn0))
             {
-                GUILayout.Label($"C/N0: {link.cn0:F1} дБ·Гц (запас до {RadioMath.FormatRate(RadioMath.MIN_DATA_RATE_BPS / 1000.0)}: {link.Margin:F1} дБ)");
+                GUILayout.Label(Loc.T("#rr_win_cn0", $"{link.cn0:F1}", RadioMath.FormatRate(RadioMath.MIN_DATA_RATE_BPS / 1000.0), $"{link.Margin:F1}"));
             }
-            if (link.hasSignal) GUILayout.Label("Команды с Земли: " + (link.uplink ? "<color=#00FF00>доходят</color>" : "<color=orange>не доходят - управления нет</color>"));
+            if (link.hasSignal) GUILayout.Label(Loc.T("#rr_win_commands", link.uplink ? Loc.T("#rr_arrive_green") : Loc.T("#rr_win_cmd_none")));
             if (!link.hasSignal && link.report != null && link.report.why.Length > 0) GUILayout.Label($"<color=orange>{link.report.why}</color>");
-            GUILayout.Label("<color=#aaaaaa>Расчёт по шагам - вкладка «Линия связи»</color>");
+            GUILayout.Label(Loc.T("#rr_win_see_link"));
         }
 
         // Очередь передачи науки аппарата: режим, состояние, файлы
@@ -246,44 +246,44 @@ namespace RealisticRadio
             if (radio == null) return;
             ScienceTransfer.Queue q = ScienceTransfer.QueueOf(v);
             GUILayout.Space(6);
-            GUILayout.Label("<b>Передача науки</b>");
+            GUILayout.Label(Loc.T("#rr_win_sci"));
             GUILayout.Label($"<color=#aaaaaa>{ScienceRules.Describe()}</color>");
             GUILayout.BeginHorizontal();
-            GUILayout.Label(radio.scienceInParts ? "Режим: <b>по частям</b> - наука за каждую дошедшую десятую часть"
-                                                 : "Режим: <b>целиком</b> - наука, когда дошёл весь файл");
-            if (GUILayout.Button(radio.scienceInParts ? "Целиком" : "По частям", GUILayout.Width(90))) radio.TransmitIncompleteToggle();
+            GUILayout.Label(radio.scienceInParts ? Loc.T("#rr_win_sci_parts")
+                                                 : Loc.T("#rr_win_sci_whole"));
+            if (GUILayout.Button(Loc.T(radio.scienceInParts ? "#rr_win_btn_whole" : "#rr_win_btn_parts"), GUILayout.Width(90))) radio.TransmitIncompleteToggle();
             GUILayout.EndHorizontal();
             if (ScienceRules.UsesPower)
-                GUILayout.Label($"Питание передатчика: {(radio.PowerDrawKw * 1000.0).ToString("0.#", inv)} Вт ({radio.PowerDrawKw.ToString("0.###", inv)} ед./с)");
+                GUILayout.Label(Loc.T("#rr_win_draw", (radio.PowerDrawKw * 1000.0).ToString("0.#", inv), radio.PowerDrawKw.ToString("0.###", inv)));
             if (q == null)
             {
-                GUILayout.Label("<color=#aaaaaa>Очередь пуста: «Передать» в окне эксперимента или «Передать науку» в меню антенны</color>");
+                GUILayout.Label(Loc.T("#rr_win_queue_empty"));
                 return;
             }
 
             string rate = q.rateBps > 0 ? RadioMath.FormatRate(q.rateBps / 1000.0) : "-";
-            string eta = q.rateBps > 0 ? $", ещё {LinkView.Delay(q.Left * 1e6 / q.rateBps)}" : "";
+            string eta = q.rateBps > 0 ? ", " + Loc.T("#rr_win_eta", LinkView.Delay(q.Left * 1e6 / q.rateBps)) : "";
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Состояние: {q.state}; скорость {rate}; осталось {ScienceTransfer.Mit(q.Left)}{eta}");
-            if (GUILayout.Button(q.paused ? "Продолжить" : "Пауза", GUILayout.Width(90))) ScienceTransfer.SetPaused(v, !q.paused);
+            GUILayout.Label(Loc.T("#rr_win_sci_state", q.state, rate, ScienceTransfer.Mit(q.Left), eta));
+            if (GUILayout.Button(Loc.T(q.paused ? "#rr_win_btn_resume" : "#rr_win_btn_pause"), GUILayout.Width(90))) ScienceTransfer.SetPaused(v, !q.paused);
             GUILayout.EndHorizontal();
 
             ScienceTransfer.Item cancel = null;
             foreach (ScienceTransfer.Item item in q.items)
             {
                 GUILayout.BeginHorizontal();
-                string mode = item.mode == ScienceSendMode.Parts ? $"по частям, засчитано {item.credited / Math.Max(item.total, 1e-9):P0}" : "целиком";
-                string restarts = item.restarts > 0 ? $", заново {item.restarts} раз" : "";
-                GUILayout.Label($"• {item.title}: {ScienceTransfer.Mit(item.sent)} из {ScienceTransfer.Mit(item.total)} ({item.Fraction:P0}), {mode}{restarts}");
-                if (v.loaded && GUILayout.Button("Отменить", GUILayout.Width(90))) cancel = item;
+                string mode = item.mode == ScienceSendMode.Parts ? Loc.T("#rr_win_item_parts", $"{item.credited / Math.Max(item.total, 1e-9):P0}") : Loc.T("#rr_mode_whole");
+                string restarts = item.restarts > 0 ? ", " + Loc.T("#rr_win_restarts", item.restarts) : "";
+                GUILayout.Label(Loc.T("#rr_win_item", item.title, ScienceTransfer.Mit(item.sent), ScienceTransfer.Mit(item.total), $"{item.Fraction:P0}", mode, restarts));
+                if (v.loaded && GUILayout.Button(Loc.T("#rr_win_btn_cancel"), GUILayout.Width(90))) cancel = item;
                 GUILayout.EndHorizontal();
             }
             if (cancel != null)
             {
                 string why;
                 ScreenMessages.PostScreenMessage(ScienceTransfer.Cancel(v, cancel, out why)
-                    ? $"«{cancel.title}»: передача отменена, недошедшее - в контейнере науки"
-                    : $"«{cancel.title}» не отменить: {why}", 4f, ScreenMessageStyle.UPPER_CENTER);
+                    ? Loc.T("#rr_win_cancelled", cancel.title)
+                    : Loc.T("#rr_win_cancel_fail", cancel.title, why), 4f, ScreenMessageStyle.UPPER_CENTER);
             }
         }
 
@@ -291,7 +291,7 @@ namespace RealisticRadio
         {
             List<ModuleRadioAntenna> antennas = ModuleRadioAntenna.On(v);
             GUILayout.Space(6);
-            GUILayout.Label($"<b>Антенны ({antennas.Count})</b>");
+            GUILayout.Label(Loc.T("#rr_win_antennas", antennas.Count));
             foreach (ModuleRadioAntenna antenna in antennas) GUILayout.Label("• " + DescribeAntenna(antenna));
         }
 
@@ -300,37 +300,37 @@ namespace RealisticRadio
             string body = v.mainBody != null ? v.mainBody.bodyName : "";
             switch (v.situation)
             {
-                case Vessel.Situations.PRELAUNCH: return $"на старте ({body})";
-                case Vessel.Situations.LANDED: return $"на поверхности ({body})";
-                case Vessel.Situations.SPLASHED: return $"на воде ({body})";
-                case Vessel.Situations.FLYING: return $"в полёте ({body})";
-                case Vessel.Situations.SUB_ORBITAL: return $"суборбитальный полёт ({body})";
-                case Vessel.Situations.ORBITING: return $"на орбите ({body})";
-                case Vessel.Situations.ESCAPING: return $"уходит из сферы действия ({body})";
-                case Vessel.Situations.DOCKED: return $"в связке ({body})";
+                case Vessel.Situations.PRELAUNCH: return Loc.T("#rr_sit_prelaunch", body);
+                case Vessel.Situations.LANDED: return Loc.T("#rr_sit_landed", body);
+                case Vessel.Situations.SPLASHED: return Loc.T("#rr_sit_splashed", body);
+                case Vessel.Situations.FLYING: return Loc.T("#rr_sit_flying", body);
+                case Vessel.Situations.SUB_ORBITAL: return Loc.T("#rr_sit_suborbital", body);
+                case Vessel.Situations.ORBITING: return Loc.T("#rr_sit_orbiting", body);
+                case Vessel.Situations.ESCAPING: return Loc.T("#rr_sit_escaping", body);
+                case Vessel.Situations.DOCKED: return Loc.T("#rr_sit_docked", body);
                 default: return body;
             }
         }
 
         public static string PartTitle(Part p)
         {
-            return p != null && p.partInfo != null ? p.partInfo.title : p != null ? p.name : "деталь";
+            return p != null && p.partInfo != null ? p.partInfo.title : p != null ? p.name : Loc.T("#rr_part");
         }
 
         public static string DescribeAntenna(ModuleRadioAntenna a)
         {
             var parts = new List<string> { a.Title, a.kind, a.Band() };
-            parts.Add(a.IsDirectional ? $"{a.GainAt(a.BandCenterMHz):0} dBi, луч {a.BeamwidthAt(a.BandCenterMHz):0.#}°" : $"{a.antennaGain:0.#} dBi");
-            if (a.IsDirectional) parts.Add(a.tracking ? "следит за целью" : "по оси детали");
-            if (a.dedicated) parts.Add("антенна прибора");
-            if (!a.IsDeployed()) parts.Add("<color=orange>сложена</color>");
+            parts.Add(a.IsDirectional ? Loc.T("#rr_win_ant_dir", $"{a.GainAt(a.BandCenterMHz):0}", $"{a.BeamwidthAt(a.BandCenterMHz):0.#}") : $"{a.antennaGain:0.#} dBi");
+            if (a.IsDirectional) parts.Add(Loc.T(a.tracking ? "#rr_ant_tracking_on" : "#rr_ant_tracking_off"));
+            if (a.dedicated) parts.Add(Loc.T("#rr_win_ant_instrument"));
+            if (!a.IsDeployed()) parts.Add(Loc.T("#rr_win_ant_folded"));
             ModuleRadioLink link = a.part != null ? a.part.FindModuleImplementing<ModuleRadioLink>() : null;
             if (link != null)
             {
                 double watts = Math.Pow(10.0, (link.transmitPower - 30.0) / 10.0);
-                parts.Add($"линия DSN {link.frequencyMHz:0.###} МГц, {watts:0.#} Вт" + (link.isRelay ? ", <color=#00FFFF>ретранслятор</color>" : ""));
+                parts.Add(Loc.T("#rr_win_ant_line", $"{link.frequencyMHz:0.###}", $"{watts:0.#}") + (link.isRelay ? ", " + Loc.T("#rr_win_ant_relay") : ""));
                 LinkResult current = link.currentLink;
-                parts.Add(current.hasSignal && current.speed > 0 ? $"сейчас {RadioMath.FormatRate(current.speed)} ({current.dsnName})" : "сейчас связи нет");
+                parts.Add(current.hasSignal && current.speed > 0 ? Loc.T("#rr_win_ant_now", RadioMath.FormatRate(current.speed), DsnManager.TitleOf(current.dsnName)) : Loc.T("#rr_win_ant_none"));
             }
             return string.Join(", ", parts.ToArray());
         }

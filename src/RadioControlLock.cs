@@ -117,8 +117,8 @@ namespace RealisticRadio
             bool lost = !vessel.connection.IsConnected;
             if (lost == scienceLost) return;
             scienceLost = lost;
-            ScreenMessages.PostScreenMessage(lost ? "Связь потеряна: научные данные не передать, управление остаётся"
-                                                  : "Связь восстановлена", 4f, ScreenMessageStyle.UPPER_CENTER);
+            ScreenMessages.PostScreenMessage(lost ? Loc.T("#rr_lock_science_lost")
+                                                  : Loc.T("#rr_lock_restored"), 4f, ScreenMessageStyle.UPPER_CENTER);
         }
 
         private void Lock(Vessel vessel)
@@ -128,7 +128,7 @@ namespace RealisticRadio
             {
                 InputLockManager.SetControlLock(LOCKED_CONTROLS, LOCK_ID);
                 isLocked = true;
-                ScreenMessages.PostScreenMessage("Связь потеряна! Ручное управление отключено: доступны SAS и газ", 4f, ScreenMessageStyle.UPPER_CENTER);
+                ScreenMessages.PostScreenMessage(Loc.T("#rr_lock_lost"), 4f, ScreenMessageStyle.UPPER_CENTER);
             }
 
             // Safe Mode: пока связи нет, SAS держится включённым - управлять можно только его режимами

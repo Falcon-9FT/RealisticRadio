@@ -81,6 +81,8 @@
     <Compile Include="RadioPhysics.cs" />
     <Compile Include="RadioPrefabs.cs" />
     <Compile Include="RadioRangeModel.cs" />
+    <Compile Include="Loc.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RadioScale.cs" />
     <Compile Include="ScienceTransfer.cs" />
     <Compile Include="RadioRuntime.cs" />

@@ -32,7 +32,7 @@ namespace RealisticRadio
         {
             if (CommNetScenario.RangeModel is RadioRangeModel) return;
             CommNetScenario.RangeModel = new RadioRangeModel();
-            Debug.Log("[RealisticRadio] CommNet: связь с наземными станциями - по дальности радиолинии мода");
+            Debug.Log("[RealisticRadio] CommNet: range to ground stations follows this mod's link range");
         }
 
         public bool InRange(double aPower, double bPower, double sqrDistance)

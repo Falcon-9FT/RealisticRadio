@@ -37,7 +37,7 @@ namespace RealisticRadio
             dsnTexture = GameDatabase.Instance.GetTexture(TEXTURE_PATH, false);
             if (dsnTexture == null)
             {
-                Debug.LogError($"[RealisticRadio] ОШИБКА: Текстура не найдена по пути GameData/{TEXTURE_PATH}.png!");
+                Debug.LogError($"[RealisticRadio] ERROR: texture not found at GameData/{TEXTURE_PATH}.png");
             }
 
             if (stations.Count > 0) return;
@@ -46,7 +46,7 @@ namespace RealisticRadio
             foreach (DsnStation st in DsnManager.Stations)
             {
                 CelestialBody body = DsnManager.BodyOf(st);
-                if (body != null) stations.Add(new StationIcon { name = st.name, body = body, lat = st.lat, lon = st.lon });
+                if (body != null) stations.Add(new StationIcon { name = st.Title, body = body, lat = st.lat, lon = st.lon });
             }
         }
 

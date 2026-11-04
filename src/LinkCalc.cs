@@ -25,6 +25,7 @@ namespace RealisticRadio
         public double distanceM, pathLossDb, horizonLossDb, solarLossDb, atmosphereLossDb;
         public double elevationDeg = double.NaN;  // угол места аппарата над горизонтом станции
         public string blocked = "";               // почему участка нет (за горизонтом, нет передатчика...)
+        public bool stationDeaf;                  // участка нет, потому что станция не слышит эту частоту
         public CelestialBody blocker;             // тело, закрывшее линию (null - открыта)
 
         // Приёмник
@@ -252,6 +253,7 @@ namespace RealisticRadio
 
         public class RxSide
         {
+            public bool deaf;
             public string name = "", feed = "", blocked = "";
             public LinkEnd end;
             public bool ground;
@@ -288,7 +290,11 @@ namespace RealisticRadio
                 blocked = tx.blocked
             };
             Path(h, tx.end, rx.end);
-            if (h.blocked.Length == 0) h.blocked = rx.blocked;
+            if (h.blocked.Length == 0)
+            {
+                h.blocked = rx.blocked;
+                h.stationDeaf = rx.deaf;
+            }
             Finish(h);
             return h;
         }
@@ -305,7 +311,7 @@ namespace RealisticRadio
                 offAxisDeg = radio.OffAxisDeg(toward - radio.position)
             };
             tx.pointingLossDb = RadioMath.PointingLoss(tx.offAxisDeg, radio.BeamDeg(f), tx.gainDbi);
-            if (!radio.deployed) tx.blocked = "антенна сложена или выключена";
+            if (!radio.deployed) tx.blocked = Loc.T("#rr_block_tx_folded");
             return tx;
         }
 
@@ -319,8 +325,8 @@ namespace RealisticRadio
             };
             rx.SetNoise(radio.OwnNoiseK, radio.Boresight(from - radio.position), radio.BeamDeg(f), f);
             rx.pointingLossDb = RadioMath.PointingLoss(rx.offAxisDeg, radio.BeamDeg(f), rx.gainDbi);
-            if (!radio.deployed) rx.blocked = "антенна приёмника сложена или выключена";
-            else if (rx.feedLossDb > 20.0) rx.blocked = $"приёмник не слышит {StationAntenna.Freq(f)}";
+            if (!radio.deployed) rx.blocked = Loc.T("#rr_block_rx_folded");
+            else if (rx.feedLossDb > 20.0) rx.blocked = Loc.T("#rr_block_rx_deaf", StationAntenna.Freq(f));
             return rx;
         }
 
@@ -344,7 +350,7 @@ namespace RealisticRadio
             StationAntenna feed = st.MainAntenna(f);
             if (feed == null)
             {
-                rx.blocked = "у станции нет антенн";
+                rx.blocked = Loc.T("#rr_block_no_antennas");
                 return rx;
             }
             rx.feed = string.IsNullOrEmpty(feed.title) ? StationAntenna.Range(feed.minMHz, feed.maxMHz) : feed.title;
@@ -352,7 +358,11 @@ namespace RealisticRadio
             rx.feedLossDb = feed.ReceiveLossDb(f);
             rx.SetNoise(feed.noiseTemperature, from - end.position, feed.BeamwidthAt(f), f);   // антенна станции смотрит на аппарат
             rx.pointingLossDb = LowElevationLoss(st, feed, f, rx.elevationDeg, out rx.offAxisDeg);
-            if (rx.feedLossDb > 20.0) rx.blocked = $"станция не слышит {StationAntenna.Freq(f)} (слышит: {st.ReceiveBands})";
+            if (rx.feedLossDb > 20.0)
+            {
+                rx.deaf = true;
+                rx.blocked = Loc.T("#rr_block_st_deaf", StationAntenna.Freq(f), st.ReceiveBands);
+            }
             return rx;
         }
 
@@ -364,7 +374,7 @@ namespace RealisticRadio
             StationAntenna feed = st.UplinkAntenna(f);
             if (feed == null)
             {
-                tx.blocked = $"нет передатчика на {StationAntenna.Freq(f)} (передатчики: {st.TransmitBands})";
+                tx.blocked = Loc.T("#rr_block_no_tx", StationAntenna.Freq(f), st.TransmitBands);
                 return tx;
             }
             double vswr;
@@ -419,7 +429,7 @@ namespace RealisticRadio
             h.horizonLossDb = Obstruction(a, b, wavelength, out why, out h.blocker);
             if (why.Length > 0 && h.blocked.Length == 0) h.blocked = why;
             h.solarLossDb = SolarLoss(a.position, b.position, h.frequencyMHz);
-            if (h.solarLossDb >= BLOCKED_LOSS_DB && h.blocked.Length == 0) h.blocked = "сигнал идёт через солнечную корону";
+            if (h.solarLossDb >= BLOCKED_LOSS_DB && h.blocked.Length == 0) h.blocked = Loc.T("#rr_block_corona");
             h.atmosphereLossDb = AtmosphereLossDb(a, b.position, h.frequencyMHz) + AtmosphereLossDb(b, a.position, h.frequencyMHz);
         }
 
@@ -478,7 +488,7 @@ namespace RealisticRadio
                 double l = BodyLoss(a.position, b.position, body.position, GroundRadius(body, a, b), wavelength);
                 if (l >= BLOCKED_LOSS_DB)
                 {
-                    why = $"закрывает {body.bodyName}";
+                    why = Loc.T("#rr_block_body", body.bodyName);
                     blocker = body;
                     return l;
                 }
@@ -560,7 +570,7 @@ namespace RealisticRadio
                 if (coverage < 1e-7) continue;
                 double k = BrightnessK(body, f) * coverage;
                 total += k;
-                if (k >= 1.0) names += (names.Length > 0 ? ", " : "") + $"{body.bodyName} {k:0} К";
+                if (k >= 1.0) names += (names.Length > 0 ? ", " : "") + $"{body.bodyName} {k:0} " + Loc.T("#rr_unit_k");
             }
             return total;
         }
@@ -743,7 +753,7 @@ namespace RealisticRadio
             // Прямая видимость: антенна раскрыта, и хоть одну станцию не закрывает тело
             foreach (HopBudget h in report.stations)
             {
-                if (radio.deployed && !h.blocked.StartsWith("закрывает")) report.visible = true;
+                if (radio.deployed && h.blocker == null) report.visible = true;
             }
 
             Vessel v = radio.vessel;
@@ -756,7 +766,7 @@ namespace RealisticRadio
                     // Путь до штатной станции KSP: антенны мода сложены, связь держит антенна без мода (встроенная)
                     report.connected = true;
                     report.stock = true;
-                    report.why = "связь через антенну без мода (встроенную) до штатной станции - антенны мода сложены";
+                    report.why = Loc.T("#rr_why_stock");
                     return report;
                 }
                 if (PathHops(radio, path, report.down, report.up))
@@ -774,16 +784,16 @@ namespace RealisticRadio
             HopBudget direct = Best(report.stations);
             if (direct == null)
             {
-                report.why = "станций нет";
+                report.why = Loc.T("#rr_why_no_stations");
                 return report;
             }
             report.down.Add(direct);
             HopBudget command = BestUplink(radio);
             if (command != null) report.up.Add(command);
             if (direct.blocked.Length > 0) report.why = direct.blocked;
-            else if (!direct.Usable) report.why = "сигнал слабее самой медленной линии (10 бит/с)";
-            else if (command == null || !command.Usable) report.why = "команды не доходят: " + (command != null && command.blocked.Length > 0 ? command.blocked : "борт не слышит станцию");
-            else report.why = "этой антенной связи нет - CommNet ведёт аппарат другим путём";
+            else if (!direct.Usable) report.why = Loc.T("#rr_why_weak");
+            else if (command == null || !command.Usable) report.why = Loc.T("#rr_why_commands", command != null && command.blocked.Length > 0 ? command.blocked : Loc.T("#rr_why_board_deaf"));
+            else report.why = Loc.T("#rr_why_other_path");
             return report;
         }
 

@@ -31,7 +31,7 @@ Exploration, Starship Expansion Project, HabTech2, JX2 Antenna, ReStock+, CommNe
 
 ## Как это работает
 
-Подробно - в [вики](https://github.com/Falcon-9FT/RealAntennasKSP/wiki/Главная).
+Подробно - в [вики](https://github.com/Falcon-9FT/RealisticRadio/wiki/Главная).
 
 **Бюджет линии.** Для каждого участка считается мощность на входе приёмника:
 `P_rx = P_tx − L_согл + G_tx − L_навед − L_fs − L_дифр − L_атм − L_корона + G_rx − L_тракт − L_навед`,

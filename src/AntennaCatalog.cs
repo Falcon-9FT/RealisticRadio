@@ -62,8 +62,8 @@ namespace RealisticRadio
         }
 
         // Диапазоны: полоса согласования, гетеродин конвертера (выше 1.7 ГГц RTL-SDR сам не принимает), шум тракта, полоса линии
-        private static readonly Band HF = new Band("КВ", 24, 30, 0, 500, 0.003);
-        private static readonly Band VHF = new Band("УКВ", 136, 148, 0, 200, 0.025);
+        private static readonly Band HF = new Band("#rr_band_hf", 24, 30, 0, 500, 0.003);
+        private static readonly Band VHF = new Band("#rr_band_vhf", 136, 148, 0, 200, 0.025);
         private static readonly Band UHF = new Band("UHF", 400, 450, 0, 150, 0.05);
         private static readonly Band L = new Band("L", 1525, 1710, 0, 120, 0.25);
         private static readonly Band S = new Band("S", 2200, 2300, 2000, 120, 1.0);
@@ -106,41 +106,41 @@ namespace RealisticRadio
                     spec.linkPowerDbm = 27.0;
                     spec.linkBandwidthMHz = 0.01;
                     spec.noiseK = 300.0;
-                    spec.kind = "встроенная " + band.name;
+                    spec.kind = Loc.T("#rr_kind_builtin", Loc.T(band.name));
                     break;
                 case Kind.Whip:
                     spec.gainDbi = 2.15;
                     spec.linkPowerDbm = band.min < 1000 ? 30.0 : 33.0;
                     spec.linkBandwidthMHz = Math.Min(band.bandwidth, 0.1);
-                    spec.kind = "штырь " + band.name;
+                    spec.kind = Loc.T("#rr_kind_whip", Loc.T(band.name));
                     break;
                 case Kind.LowGain:
                     spec.gainDbi = 3.0;
                     spec.linkPowerDbm = band.min < 1000 ? 30.0 : 33.0;
                     spec.linkBandwidthMHz = Math.Min(band.bandwidth, 0.1);
-                    spec.kind = "всенаправленная " + band.name;
+                    spec.kind = Loc.T("#rr_kind_omni", Loc.T(band.name));
                     break;
                 case Kind.Yagi:
-                    SetDirectional(spec, 10.0, 37.0, "Уда-Яги " + band.name);
+                    SetDirectional(spec, 10.0, 37.0, Loc.T("#rr_kind_yagi", Loc.T(band.name)));
                     break;
                 case Kind.Helical:
-                    SetDirectional(spec, 12.0, 37.0, "спиральная " + band.name);
+                    SetDirectional(spec, 12.0, 37.0, Loc.T("#rr_kind_helix", Loc.T(band.name)));
                     break;
                 case Kind.MediumGain:
-                    SetDirectional(spec, 14.0, 37.0, "среднего усиления " + band.name);
+                    SetDirectional(spec, 14.0, 37.0, Loc.T("#rr_kind_medium", Loc.T(band.name)));
                     spec.linkBandwidthMHz = Math.Min(band.bandwidth, 0.5);
                     break;
                 case Kind.Phased:
                     spec.dishDiameter = Clamp(0.5 * Math.Pow(power / 2e9, 0.22), 0.2, 8.0);
                     spec.linkPowerDbm = 40.0;
-                    spec.kind = $"ФАР {band.name} {spec.dishDiameter:0.#} м";
+                    spec.kind = Loc.T("#rr_kind_phased", Loc.T(band.name), $"{spec.dishDiameter:0.#}");
                     break;
                 default:
                     // Тарелка: диаметр растёт с дальностью, но медленно - у стоковых антенн мощность меняется на порядки
                     spec.dishDiameter = Clamp(0.8 * Math.Pow(power / 2e9, 0.22), 0.3, 30.0);
                     spec.linkPowerDbm = power < 1e10 ? 40.0 : power < 1e12 ? 43.0 : power < 1e13 ? 46.0 : 50.0;
                     if (power >= 1e11 && band == X) spec.linkBandwidthMHz = 4.0;
-                    spec.kind = $"тарелка {band.name} ⌀{spec.dishDiameter:0.#} м";
+                    spec.kind = Loc.T("#rr_kind_dish", Loc.T(band.name), $"{spec.dishDiameter:0.#}");
                     break;
             }
             return spec;

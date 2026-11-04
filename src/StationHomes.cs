@@ -28,7 +28,7 @@ namespace RealisticRadio
             lon = station.lon;
             alt = station.altitude;
             nodeName = "RealisticRadio " + station.name;
-            displaynodeName = station.name;
+            displaynodeName = station.Title;
             isKSC = false;
             isPermanent = true;
             nodeTransform = transform;
@@ -83,10 +83,10 @@ namespace RealisticRadio
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"[RealisticRadio] Станция «{st.name}» не стала узлом CommNet: {ex}");
+                    Debug.LogError($"[RealisticRadio] Station \"{st.name}\" did not become a CommNet node: {ex}");
                 }
             }
-            if (homes.Count > 0) Debug.Log($"[RealisticRadio] CommNet: станций мода {homes.Count} - связь аппаратов с антеннами мода идёт через них");
+            if (homes.Count > 0) Debug.Log($"[RealisticRadio] CommNet: {homes.Count} mod stations; vessels with mod antennas connect through them");
         }
 
         // Узлы станций - в текущей сети CommNet: сеть создаётся заново в каждой сцене, а станция, созданная в момент её

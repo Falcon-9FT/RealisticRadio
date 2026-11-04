@@ -9,6 +9,14 @@ namespace RealisticRadio
     // Радиофизика без зависимостей от игры: потери трассы, усиление тарелок, шум, наведение, скорость
     public static class RadioMath
     {
+        // Тексты: подключает игра (Loc), вне игры - английские по умолчанию
+        public static Func<string, string> Translate;
+
+        private static string Text(string key, string fallback)
+        {
+            return (Translate != null ? Translate(key) : null) ?? fallback;
+        }
+
         public const double SPEED_OF_LIGHT = 299792458.0;
         public const double BOLTZMANN = 1.380649e-23;
         public const double DISH_EFFICIENCY = 0.55;
@@ -77,17 +85,17 @@ namespace RealisticRadio
                 mode = "";
                 return 0.0;
             }
-            mode = modCods[0].name + ", скорость снижена";
+            mode = modCods[0].name + ", " + Text("#rr_rate_reduced", "reduced rate");
             return bps / 1000.0;
         }
 
         // Скорость для людей: 1.2 Мбит/с, 34 кбит/с, 160 бит/с
         public static string FormatRate(double kbps)
         {
-            if (kbps <= 0.0) return "нет связи";
-            if (kbps >= 1000.0) return (kbps / 1000.0).ToString(kbps >= 10000.0 ? "0" : "0.#") + " Мбит/с";
-            if (kbps >= 1.0) return kbps.ToString(kbps >= 10.0 ? "0" : "0.#") + " кбит/с";
-            return (kbps * 1000.0).ToString("0") + " бит/с";
+            if (kbps <= 0.0) return Text("#rr_no_link", "no link");
+            if (kbps >= 1000.0) return (kbps / 1000.0).ToString(kbps >= 10000.0 ? "0" : "0.#") + " " + Text("#rr_unit_mbps", "Mbit/s");
+            if (kbps >= 1.0) return kbps.ToString(kbps >= 10.0 ? "0" : "0.#") + " " + Text("#rr_unit_kbps", "kbit/s");
+            return (kbps * 1000.0).ToString("0") + " " + Text("#rr_unit_bps", "bit/s");
         }
 
         // Скорость передачи в выбранном режиме, кбит/с; mode - название режима или пусто, если связи нет

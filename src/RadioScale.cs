@@ -22,16 +22,16 @@ namespace RealisticRadio
 
         private static bool detected;
         private static double factor = KERBOL_FACTOR;
-        private static string name = "масштаб Кербола";
-        private static string unknown = "";
+        private static string name = "#rr_scale_kerbol";
+        private static string unknown = "", unknownArg = "";
 
         public static double Factor { get { Detect(); return factor; } }
 
         // Пакет планет есть, но мод его не знает (или не понял его настройку) - считаем как сток. Пусто - всё узнано
-        public static string Unknown { get { Detect(); return unknown; } }
+        public static string Unknown { get { Detect(); return unknown.Length > 0 ? Loc.T(unknown, unknownArg) : ""; } }
 
         // Как называется система для окон: «Sol (Quarter)», «Real Solar System», «масштаб Кербола»
-        public static string Name { get { Detect(); return name; } }
+        public static string Name { get { Detect(); return Loc.T(name); } }
 
         // Потери в свободном пространстве по расстоянию игры, дБ: как на настоящем расстоянии
         public static double PathLossDb(double gameDistanceM, double frequencyMHz)
@@ -62,7 +62,8 @@ namespace RealisticRadio
                         case "stock": factor = SOL_STOCK; break;
                         default:
                             factor = KERBOL_FACTOR;
-                            unknown = scale.Length > 0 ? $"у Sol неизвестный масштаб SystemScale = {scale}" : "у Sol не указан масштаб SystemScale";
+                            unknown = scale.Length > 0 ? "#rr_scale_bad" : "#rr_scale_none";
+                            unknownArg = scale;
                             break;
                     }
                     name = $"Sol ({(scale.Length > 0 ? scale : "?")})";
@@ -77,18 +78,19 @@ namespace RealisticRadio
                     ConfigNode[] kopernicus = GameDatabase.Instance.GetConfigNodes("Kopernicus");
                     factor = KERBOL_FACTOR;
                     bool pack = kopernicus != null && kopernicus.Length > 0;
-                    name = pack ? "неизвестный пакет планет - как Кербол" : "масштаб Кербола";
-                    if (pack) unknown = "стоит Kopernicus с пакетом планет, который мод не знает";
+                    name = pack ? "#rr_scale_unknown_pack" : "#rr_scale_kerbol";
+                    if (pack) unknown = "#rr_scale_pack";
                 }
             }
             catch (Exception ex)
             {
                 factor = KERBOL_FACTOR;
-                name = "масштаб Кербола";
-                unknown = $"ошибка при чтении настроек: {ex.Message}";
-                Debug.LogWarning($"[RealisticRadio] Масштаб системы не определился, считаю как Кербол: {ex.Message}");
+                name = "#rr_scale_kerbol";
+                unknown = "#rr_scale_error";
+                unknownArg = ex.Message;
+                Debug.LogWarning($"[RealisticRadio] System scale not detected, treating as Kerbol: {ex.Message}");
             }
-            Debug.Log($"[RealisticRadio] Масштаб системы: {name}, коэффициент {factor:0.##} - потери на трассе как на настоящих расстояниях");
+            Debug.Log($"[RealisticRadio] System scale: {name}, factor {factor:0.##}: path loss as over real distances");
         }
 
         // SystemScale из настроек Sol: свой узел Sol_Configuration, а если его нет - копии, которые Sol кладёт в
@@ -141,12 +143,9 @@ namespace RealisticRadio
             string unknown = RadioScale.Unknown;
             if (unknown.Length == 0) yield break;
             PopupDialog.SpawnPopupDialog(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), "RealisticRadioScale",
-                "RealisticRadio: пакет планет не определён",
-                $"Не удалось определить масштаб планетной системы: {unknown}.\n\n" +
-                $"Все расчёты связи будут идти по стоку - как в системе Кербола (потери на трассе как на расстоянии в " +
-                $"{RadioScale.KERBOL_FACTOR:0.#} раза больше игрового). Дальности антенн могут не совпадать с размерами вашей системы.\n\n" +
-                "Сейчас мод узнаёт: стоковую систему, Sol (Real, Quarter, Stock) и Real Solar System.",
-                "Понятно", false, HighLogic.UISkin);
+                Loc.T("#rr_scale_popup_title"),
+                Loc.T("#rr_scale_popup_text", unknown, $"{RadioScale.KERBOL_FACTOR:0.#}"),
+                Loc.T("#rr_ok"), false, HighLogic.UISkin);
         }
     }
 }

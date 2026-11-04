@@ -63,7 +63,7 @@ namespace RealisticRadio
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[RealisticRadio] Настройки не прочитались: {ex.Message}");
+                Debug.LogWarning($"[RealisticRadio] Settings could not be read: {ex.Message}");
             }
         }
 
@@ -83,7 +83,7 @@ namespace RealisticRadio
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[RealisticRadio] Настройки не сохранились: {ex.Message}");
+                Debug.LogWarning($"[RealisticRadio] Settings could not be saved: {ex.Message}");
             }
         }
     }

@@ -149,20 +149,21 @@ namespace RealisticRadio
         public override string GetInfo()
         {
             AutoConfigure();
-            string info = "<b>RealisticRadio: связь с Землёй</b>\n\n";
-            info += $"Тип: {(isRelay ? "ретранслятор" : "прямая связь")}\n";
-            info += $"Частота: {frequencyMHz:0.###} МГц\n";
-            info += $"Усиление: {antennaGain:0.#} dBi\n";
-            info += $"Мощность передатчика: {transmitPower:0.#} dBm ({Math.Pow(10.0, (transmitPower - 30.0) / 10.0):0.#} Вт)\n";
-            info += $"Луч: {(beamwidth >= 180f ? "всенаправленная" : beamwidth.ToString("0.#") + "°")}\n";
-            info += $"Полоса канала: {bandwidthMHz * 1000.0:0.#} кГц\n";
-            info += $"Питание при передаче науки: {PowerDrawKw * 1000.0:0.#} Вт ({PowerDrawKw:0.###} ед./с)\n\n";
+            string info = "<b>" + Loc.T("#rr_info_header") + "</b>\n\n";
+            info += Loc.T("#rr_info_type", Loc.T(isRelay ? "#rr_info_relay" : "#rr_info_direct")) + "\n";
+            info += Loc.T("#rr_info_freq", $"{frequencyMHz:0.###}") + "\n";
+            info += Loc.T("#rr_info_gain", $"{antennaGain:0.#}") + "\n";
+            info += Loc.T("#rr_info_power", $"{transmitPower:0.#}", $"{Math.Pow(10.0, (transmitPower - 30.0) / 10.0):0.#}") + "\n";
+            info += Loc.T("#rr_info_beam", beamwidth >= 180f ? Loc.T("#rr_kind_omni_plain") : beamwidth.ToString("0.#") + "°") + "\n";
+            info += Loc.T("#rr_info_band", $"{bandwidthMHz * 1000.0:0.#}") + "\n";
+            info += Loc.T("#rr_info_draw", $"{PowerDrawKw * 1000.0:0.#}", $"{PowerDrawKw:0.###}") + "\n\n";
             // Вдали аппарат снижает скорость: связь есть и там, где сигнала на полный канал уже не хватает
             string full;
             double fullRate = RadioMath.DataRateKbps(bandwidthMHz * 1e6, 100.0, out full);
-            info += $"<b>Дальность связи с DSN:</b> {KSPUtil.PrintSI(MaxDirectRange(), "м")} (на {RadioMath.FormatRate(RadioMath.MIN_DATA_RATE_BPS / 1000.0)})\n";
-            info += $"На {RadioMath.FormatRate(RadioMath.USEFUL_DATA_RATE_BPS / 1000.0)} - до {KSPUtil.PrintSI(RangeForCn0(RadioMath.Cn0ForRate(RadioMath.USEFUL_DATA_RATE_BPS)), "м")}, " +
-                    $"на полной скорости (до {RadioMath.FormatRate(fullRate)}) - до {KSPUtil.PrintSI(RangeForCn0(FullRateCn0()), "м")}";
+            string meters = Loc.T("#rr_unit_m");
+            info += "<b>" + Loc.T("#rr_info_range") + "</b> " + KSPUtil.PrintSI(MaxDirectRange(), meters) + " " + Loc.T("#rr_info_range_at", RadioMath.FormatRate(RadioMath.MIN_DATA_RATE_BPS / 1000.0)) + "\n";
+            info += Loc.T("#rr_info_range_useful", RadioMath.FormatRate(RadioMath.USEFUL_DATA_RATE_BPS / 1000.0), KSPUtil.PrintSI(RangeForCn0(RadioMath.Cn0ForRate(RadioMath.USEFUL_DATA_RATE_BPS)), meters)) + " " +
+                    Loc.T("#rr_info_range_full", RadioMath.FormatRate(fullRate), KSPUtil.PrintSI(RangeForCn0(FullRateCn0()), meters));
             return info;
         }
 
@@ -245,7 +246,7 @@ namespace RealisticRadio
             }
             if (count == 0)
             {
-                ScreenMessages.PostScreenMessage("На борту нет научных данных", 3f, ScreenMessageStyle.UPPER_CENTER);
+                ScreenMessages.PostScreenMessage(Loc.T("#rr_sci_no_data"), 3f, ScreenMessageStyle.UPPER_CENTER);
                 return;
             }
             if (spent == 0)
@@ -255,10 +256,10 @@ namespace RealisticRadio
             }
             PopupDialog.SpawnPopupDialog(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
                 new MultiOptionDialog("RealisticRadioTransmit",
-                    $"Данных на борту: {count}. Приборов без повторного запуска: {spent} - после передачи они не будут работать, пока их не сбросит учёный.",
-                    "Передать данные", HighLogic.UISkin,
-                    new DialogGUIButton("Передать", () => Collect(containers)),
-                    new DialogGUIButton("Отмена", () => { })),
+                    Loc.T("#rr_sci_confirm_text", count, spent),
+                    Loc.T("#rr_sci_confirm_title"), HighLogic.UISkin,
+                    new DialogGUIButton(Loc.T("#rr_sci_confirm_yes"), () => Collect(containers)),
+                    new DialogGUIButton(Loc.T("#rr_sci_confirm_no"), () => { })),
                 false, HighLogic.UISkin);
         }
 
@@ -301,8 +302,8 @@ namespace RealisticRadio
             {
                 scienceInParts = parts;
             }
-            ScreenMessages.PostScreenMessage(parts ? "Наука по частям: каждая десятая часть начисляется, как только дошла"
-                                                   : "Наука целиком: начисляется, когда дошёл весь файл", 4f, ScreenMessageStyle.UPPER_CENTER);
+            ScreenMessages.PostScreenMessage(parts ? Loc.T("#rr_sci_parts_msg")
+                                                   : Loc.T("#rr_sci_whole_msg"), 4f, ScreenMessageStyle.UPPER_CENTER);
         }
 
         public void UpdateScienceUi()
@@ -311,20 +312,20 @@ namespace RealisticRadio
             {
                 ScienceTransfer.Queue q = ScienceTransfer.QueueOf(vessel);
                 BaseEvent start = Events["StartTransmission"];
-                if (start != null) start.guiName = "Передать науку";
+                if (start != null) start.guiName = Loc.T("#rr_sci_event_start");
                 BaseEvent stop = Events["StopTransmission"];
                 if (stop != null)
                 {
                     stop.active = stop.guiActive = q != null;
-                    stop.guiName = q != null && q.paused ? "Продолжить передачу науки" : "Остановить передачу науки";
+                    stop.guiName = Loc.T(q != null && q.paused ? "#rr_sci_event_resume" : "#rr_sci_event_stop");
                 }
                 BaseEvent mode = Events["TransmitIncompleteToggle"];
                 if (mode != null)
                 {
                     mode.active = mode.guiActive = true;
-                    mode.guiName = scienceInParts ? "Наука: по частям" : "Наука: целиком";
+                    mode.guiName = Loc.T(scienceInParts ? "#rr_sci_event_parts" : "#rr_sci_event_whole");
                 }
-                statusText = q == null ? "готов" : $"наука: {q.state}, осталось {ScienceTransfer.Mit(q.Left)}";
+                statusText = q == null ? Loc.T("#rr_sci_status_ready") : Loc.T("#rr_sci_status", q.state, ScienceTransfer.Mit(q.Left));
             }
             catch (Exception)
             {

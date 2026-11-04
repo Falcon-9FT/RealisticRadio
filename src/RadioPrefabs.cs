@@ -25,7 +25,7 @@ namespace RealisticRadio
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[RealisticRadio] Пересчёт антенн: {ex}");
+                Debug.LogError($"[RealisticRadio] Antenna refresh: {ex}");
             }
         }
 
@@ -33,8 +33,8 @@ namespace RealisticRadio
         {
             var inv = CultureInfo.InvariantCulture;
             var report = new StringBuilder();
-            report.AppendLine("# RealisticRadio: антенны этой игры. Формат: деталь | название | вид | полоса | усиление | конвертер | откуда | линия DSN");
-            report.AppendLine($"# Мощность DSN высшего уровня: {ModuleRadioLink.DsnPower().ToString("E2", inv)}");
+            report.AppendLine("# RealisticRadio: antennas in this game. Format: part | title | type | band | gain | converter | source | DSN link");
+            report.AppendLine($"# Top-level DSN power: {ModuleRadioLink.DsnPower().ToString("E2", inv)}");
             int fromConfig = 0, matched = 0, links = 0;
             foreach (AvailablePart part in PartLoader.LoadedPartsList)
             {
@@ -54,20 +54,20 @@ namespace RealisticRadio
 
                 ModuleRadioLink dsn = prefab.FindModuleImplementing<ModuleRadioLink>();
                 string gain = antenna.IsDirectional
-                    ? $"{antenna.GainAt(antenna.BandCenterMHz).ToString("0.#", inv)} dBi, луч {antenna.BeamwidthAt(antenna.BandCenterMHz).ToString("0.#", inv)}°"
+                    ? $"{antenna.GainAt(antenna.BandCenterMHz).ToString("0.#", inv)} dBi, beam {antenna.BeamwidthAt(antenna.BandCenterMHz).ToString("0.#", inv)}°"
                     : $"{antenna.antennaGain.ToString("0.#", inv)} dBi";
-                string lnb = antenna.LnbMHz > 0 ? antenna.LnbMHz.ToString("0.#", inv) + " МГц" : "-";
+                string lnb = antenna.LnbMHz > 0 ? antenna.LnbMHz.ToString("0.#", inv) + " MHz" : "-";
                 string line = dsn != null
-                    ? $"{dsn.frequencyMHz.ToString("0.###", inv)} МГц, {dsn.transmitPower.ToString("0.#", inv)} dBm, до {KSPUtil.PrintSI(dsn.DirectRangeMeters, "м")} (1 кбит/с - до {KSPUtil.PrintSI(dsn.UsefulRangeMeters, "м")})"
+                    ? $"{dsn.frequencyMHz.ToString("0.###", inv)} MHz, {dsn.transmitPower.ToString("0.#", inv)} dBm, up to {KSPUtil.PrintSI(dsn.DirectRangeMeters, "m")} (1 kbit/s up to {KSPUtil.PrintSI(dsn.UsefulRangeMeters, "m")})"
                     : "-";
-                report.AppendLine($"{part.name} | {part.title} | {antenna.kind} | {antenna.Band()} | {gain} | {lnb} | {(antenna.IsAutomatic ? "подобрана" : "конфиг")} | {line}");
+                report.AppendLine($"{part.name} | {part.title} | {antenna.kind} | {antenna.Band()} | {gain} | {lnb} | {(antenna.IsAutomatic ? "matched" : "config")} | {line}");
             }
 
             string folder = Path.Combine(KSPUtil.ApplicationRootPath, "GameData", "RealisticRadio", "PluginData");
             Directory.CreateDirectory(folder);
             string path = Path.Combine(folder, "AntennaReport.txt");
             File.WriteAllText(path, report.ToString(), new UTF8Encoding(false));
-            Debug.Log($"[RealisticRadio] Антенны: {fromConfig} из конфига, {matched} подобраны по названию, линий DSN {links}; сводка - {path}");
+            Debug.Log($"[RealisticRadio] Antennas: {fromConfig} from config, {matched} matched by name, {links} DSN links; report: {path}");
         }
     }
 }

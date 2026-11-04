@@ -6,7 +6,7 @@ Realistic radio communications for Kerbal Space Program 1.12, replacing the stoc
 by a radio link budget: transmitter power and antenna, path loss, receiving antenna and system noise temperature, the
 resulting C/N0, and the modulation and coding mode it supports. Only ModuleManager is required.
 
-The in-game interface is currently in Russian.
+The interface is available in English and Russian and follows the game's language.
 
 ## Compatibility
 
@@ -32,7 +32,7 @@ Starship Expansion Project, HabTech2, JX2 Antenna, ReStock+, CommNet Antennas Ex
 
 ## How it works
 
-Full details are in the [wiki](https://github.com/Falcon-9FT/RealAntennasKSP/wiki).
+Full details are in the [wiki](https://github.com/Falcon-9FT/RealisticRadio/wiki).
 
 **Link budget.** For each hop the mod computes the power at the receiver input:
 `P_rx = P_tx − L_match + G_tx − L_point − L_fs − L_diff − L_atm − L_corona + G_rx − L_feed − L_point`,

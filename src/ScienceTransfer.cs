@@ -51,9 +51,9 @@ namespace RealisticRadio
         {
             switch (Current)
             {
-                case Level.Easy: return "лёгкий уровень: скорость линии ×10, электричество не тратится, при обрыве - пауза";
-                case Level.Hard: return "средний/сложный: при обрыве файл «целиком» начинается заново, «по частям» - с последней дошедшей части";
-                default: return "нормальный уровень: настоящая скорость, электричество по мощности передатчика, при обрыве - пауза";
+                case Level.Easy: return Loc.T("#rr_sci_rule_easy");
+                case Level.Hard: return Loc.T("#rr_sci_rule_hard");
+                default: return Loc.T("#rr_sci_rule_normal");
             }
         }
     }
@@ -142,7 +142,7 @@ namespace RealisticRadio
                 triggered = data.triggered,
                 mode = mode
             });
-            ScreenMessages.PostScreenMessage($"Наука «{data.title}» в очереди на передачу ({Mit(data.dataAmount)}, {(mode == ScienceSendMode.Whole ? "целиком" : "по частям")})",
+            ScreenMessages.PostScreenMessage(Loc.T("#rr_sci_queued", data.title, Mit(data.dataAmount), Loc.T(mode == ScienceSendMode.Whole ? "#rr_mode_whole" : "#rr_mode_parts")),
                                              4f, ScreenMessageStyle.UPPER_LEFT);
         }
 
@@ -160,7 +160,7 @@ namespace RealisticRadio
             if (q == null || !q.items.Contains(item)) return false;
             if (!v.loaded)
             {
-                why = "аппарат не загружен";
+                why = Loc.T("#rr_sci_not_loaded");
                 return false;
             }
             double left = item.total - item.credited;
@@ -179,7 +179,7 @@ namespace RealisticRadio
                 }
                 if (!stored)
                 {
-                    why = "на борту нет контейнера науки со свободным местом";
+                    why = Loc.T("#rr_sci_no_container");
                     return false;
                 }
             }
@@ -228,7 +228,7 @@ namespace RealisticRadio
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"[RealisticRadio] Передача науки «{v.vesselName}»: {ex}");
+                    Debug.LogError($"[RealisticRadio] Science transmission \"{v.vesselName}\": {ex}");
                 }
             }
             foreach (uint id in gone) queues.Remove(id);
@@ -287,7 +287,7 @@ namespace RealisticRadio
             q.rateBps = 0;
             if (q.paused)
             {
-                q.state = "остановлена";
+                q.state = Loc.T("#rr_sci_state_stopped");
                 return;
             }
             // Скорость - как у линии: узкое место пути CommNet до станции
@@ -295,14 +295,14 @@ namespace RealisticRadio
             if (bps <= 0)
             {
                 LinkLost(q, v);
-                q.state = "пауза: нет связи с Землёй";
+                q.state = Loc.T("#rr_sci_state_no_link");
                 return;
             }
             bps *= ScienceRules.RateFactor;
 
             // Электричество на передатчик (у загруженного аппарата): нет - передача идёт настолько, насколько хватило
             double seconds = dt;
-            q.state = "идёт";
+            q.state = Loc.T("#rr_sci_state_running");
             if (ScienceRules.UsesPower && v.loaded)
             {
                 ModuleRadioLink radio = ModuleRadioLink.FindBestRadio(v);
@@ -314,7 +314,7 @@ namespace RealisticRadio
                     if (got < need * 0.999)
                     {
                         seconds = dt * Math.Max(0.0, got) / need;
-                        q.state = "пауза: не хватает электричества";
+                        q.state = Loc.T("#rr_sci_state_no_power");
                     }
                 }
             }
@@ -353,8 +353,8 @@ namespace RealisticRadio
             item.sent = item.credited;
             item.restarts++;
             ScreenMessages.PostScreenMessage(item.mode == ScienceSendMode.Whole
-                ? $"{v.vesselName}: связь прервалась - «{item.title}» придётся передавать заново"
-                : $"{v.vesselName}: связь прервалась - «{item.title}» продолжится с последней дошедшей части", 5f, ScreenMessageStyle.UPPER_CENTER);
+                ? Loc.T("#rr_sci_lost_whole", v.vesselName, item.title)
+                : Loc.T("#rr_sci_lost_parts", v.vesselName, item.title), 5f, ScreenMessageStyle.UPPER_CENTER);
         }
 
         // Начислить дошедшее: целиком - в конце, по частям - каждую дошедшую десятую часть
@@ -367,11 +367,11 @@ namespace RealisticRadio
             if (amount <= 1e-9) return;
             item.credited = due;
             double gained = Submit(v, item, amount);
-            string science = gained >= 0 ? $": +{gained.ToString("0.##", inv)} науки" : "";
+            string science = gained >= 0 ? ": " + Loc.T("#rr_sci_gain", gained.ToString("0.##", inv)) : "";
             if (item.mode == ScienceSendMode.Parts && !final)
-                ScreenMessages.PostScreenMessage($"«{item.title}»: дошло {item.credited / item.total:P0}{science}", 3f, ScreenMessageStyle.UPPER_LEFT);
+                ScreenMessages.PostScreenMessage(Loc.T("#rr_sci_part_done", item.title, $"{item.credited / item.total:P0}", science), 3f, ScreenMessageStyle.UPPER_LEFT);
             else
-                ScreenMessages.PostScreenMessage($"«{item.title}» передано на Землю{science}", 5f, ScreenMessageStyle.UPPER_CENTER);
+                ScreenMessages.PostScreenMessage(Loc.T("#rr_sci_file_done", item.title, science), 5f, ScreenMessageStyle.UPPER_CENTER);
         }
 
         // -1 - в игре нет науки (песочница)
@@ -381,7 +381,7 @@ namespace RealisticRadio
             ScienceSubject subject = ResearchAndDevelopment.GetSubjectByID(item.subjectId);
             if (subject == null)
             {
-                Debug.LogWarning($"[RealisticRadio] Наука «{item.title}»: субъект {item.subjectId} не найден");
+                Debug.LogWarning($"[RealisticRadio] Science \"{item.title}\": subject {item.subjectId} not found");
                 return 0.0;
             }
             return ResearchAndDevelopment.Instance.SubmitScienceData((float)amount, item.ratio, subject, item.xmit, v.protoVessel, false);
@@ -397,13 +397,13 @@ namespace RealisticRadio
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[RealisticRadio] Событие передачи данных: {ex.Message}");
+                Debug.LogWarning($"[RealisticRadio] Data transmission event: {ex.Message}");
             }
         }
 
         public static string Mit(double mit)
         {
-            return mit >= 0.1 ? mit.ToString("0.##", inv) + " Мит" : (mit * 1000).ToString("0.#", inv) + " кбит";
+            return mit >= 0.1 ? mit.ToString("0.##", inv) + " " + Loc.T("#rr_unit_mit") : (mit * 1000).ToString("0.#", inv) + " " + Loc.T("#rr_unit_kbit");
         }
 
         // --- Сохранение ---

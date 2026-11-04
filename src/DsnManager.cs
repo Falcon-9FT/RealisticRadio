@@ -91,14 +91,14 @@ namespace RealisticRadio
         public string Describe()
         {
             string band = Range(minMHz, maxMHz);
-            string uplink = uplinkW > 0 ? "команды " + Power(uplinkW) : "";
-            string through = lnbMHz > 0 ? $"{band} (в SDR −{Freq(lnbMHz)}" + (uplink.Length > 0 ? "; " + uplink : "") + ")"
-                                        : band + " напрямую" + (uplink.Length > 0 ? $" ({uplink})" : "");
+            string uplink = uplinkW > 0 ? Loc.T("#rr_feed_commands", Power(uplinkW)) : "";
+            string through = lnbMHz > 0 ? Loc.T("#rr_feed_sdr", band, Freq(lnbMHz), uplink.Length > 0 ? "; " + uplink : "")
+                                        : Loc.T("#rr_feed_direct", band, uplink.Length > 0 ? $" ({uplink})" : "");
             string name = string.IsNullOrEmpty(title) ? "" : title + " ";
             switch (kind)
             {
-                case StationAntennaKind.Omni: return $"{name}штырь {gainDbi:0.#} dBi, {through}";
-                case StationAntennaKind.Yagi: return $"{name}решётка {gainDbi:0.#} dBi, луч {beamwidthDeg:0}°, {through}";
+                case StationAntennaKind.Omni: return Loc.T("#rr_feed_omni", name, $"{gainDbi:0.#}", through);
+                case StationAntennaKind.Yagi: return Loc.T("#rr_feed_yagi", name, $"{gainDbi:0.#}", $"{beamwidthDeg:0}", through);
                 default: return name + through;
             }
         }
@@ -107,7 +107,7 @@ namespace RealisticRadio
         public static string Freq(double mhz)
         {
             var inv = CultureInfo.InvariantCulture;
-            return mhz >= 1000.0 ? (mhz / 1000.0).ToString("0.###", inv) + " ГГц" : mhz.ToString("0.###", inv) + " МГц";
+            return mhz >= 1000.0 ? (mhz / 1000.0).ToString("0.###", inv) + " " + Loc.T("#rr_unit_ghz") : mhz.ToString("0.###", inv) + " " + Loc.T("#rr_unit_mhz");
         }
 
         // 2.2–2.3 ГГц, 920–932 МГц, 900 МГц–1.8 ГГц
@@ -123,13 +123,14 @@ namespace RealisticRadio
         public static string Power(double watts)
         {
             var inv = CultureInfo.InvariantCulture;
-            return watts >= 1000.0 ? (watts / 1000.0).ToString("0.#", inv) + " кВт" : watts.ToString("0.#", inv) + " Вт";
+            return watts >= 1000.0 ? (watts / 1000.0).ToString("0.#", inv) + " " + Loc.T("#rr_unit_kw") : watts.ToString("0.#", inv) + " " + Loc.T("#rr_unit_w");
         }
     }
 
     public class DsnStation
     {
         public string name;
+        public string displayName = "";          // тег названия для окон; name - постоянный идентификатор станции
         public string bodyName;
         public double lat;
         public double lon;
@@ -216,7 +217,7 @@ namespace RealisticRadio
                 {
                     if (a.uplinkW > 0) parts.Add((string.IsNullOrEmpty(a.title) ? StationAntenna.Freq(a.BandCenterMHz) : a.title) + " " + StationAntenna.Power(a.uplinkW));
                 }
-                return parts.Count > 0 ? string.Join(", ", parts.ToArray()) : "нет";
+                return parts.Count > 0 ? string.Join(", ", parts.ToArray()) : Loc.T("#rr_none");
             }
         }
 
@@ -246,12 +247,15 @@ namespace RealisticRadio
             }
         }
 
+        // Название для окон
+        public string Title { get { return string.IsNullOrEmpty(displayName) ? name : Loc.T(displayName); } }
+
         public string Describe()
         {
             var parts = new List<string>();
             foreach (StationAntenna a in antennas) parts.Add(a.Describe());
             string feeds = string.Join(", ", parts.ToArray());
-            return diameter > 0 && antennas.TrueForAll(a => a.IsDish) ? $"тарелка ⌀{diameter:0.#} м: {feeds}" : feeds;
+            return diameter > 0 && antennas.TrueForAll(a => a.IsDish) ? Loc.T("#rr_kind_dish_plain", $"{diameter:0.#}") + ": " + feeds : feeds;
         }
     }
 
@@ -275,6 +279,17 @@ namespace RealisticRadio
         // Тело станции - по имени из конфига; станции тел, которых в игре нет, не работают (в конфиге есть и Кербин,
         // и Земля реальной Солнечной системы). Если в игре нет ни одного тела из конфига (планетный мод назвал
         // родную планету иначе), все станции встают на родную планету - иначе без связи осталась бы вся игра
+        // Название станции для окон по её идентификатору; имя аппарата возвращается как есть
+        public static string TitleOf(string name)
+        {
+            if (Stations == null) return name;
+            foreach (DsnStation s in Stations)
+            {
+                if (s.name == name) return s.Title;
+            }
+            return name;
+        }
+
         public static CelestialBody BodyOf(DsnStation station)
         {
             List<CelestialBody> bodies = FlightGlobals.Bodies;
@@ -289,7 +304,7 @@ namespace RealisticRadio
                 configuredBodyExists = Stations.Exists(s => bodies.Exists(b => b.name == s.bodyName));
                 if (configuredBodyExists == false)
                 {
-                    Debug.LogWarning($"[RealisticRadio] Тел из DsnStations.cfg в игре нет - станции DSN стоят на родной планете {FlightGlobals.GetHomeBody()?.bodyName}");
+                    Debug.LogWarning($"[RealisticRadio] No bodies from DsnStations.cfg in this game: DSN stations placed on the home planet {FlightGlobals.GetHomeBody()?.bodyName}");
                 }
             }
             return configuredBodyExists == true ? null : FlightGlobals.GetHomeBody();
@@ -360,7 +375,7 @@ namespace RealisticRadio
                         DsnStation st = Read(stationNode);
                         if (Stations.Exists(s => s.name == st.name && s.bodyName == st.bodyName))
                         {
-                            Debug.LogWarning($"[RealisticRadio] Станция \"{st.name}\" ({st.bodyName}) объявлена повторно, дубликат пропущен");
+                            Debug.LogWarning($"[RealisticRadio] Station \"{st.name}\" ({st.bodyName}) declared twice, duplicate skipped");
                             continue;
                         }
                         Stations.Add(st);
@@ -392,6 +407,7 @@ namespace RealisticRadio
             var st = new DsnStation
             {
                 name = (node.GetValue("name") ?? "Unknown").Trim(),
+                displayName = (node.GetValue("displayName") ?? "").Trim(),
                 bodyName = (node.GetValue("body") ?? "Kerbin").Trim(),
                 lat = ReadDouble(node, "lat", 0.0),
                 lon = ReadDouble(node, "lon", 0.0),
@@ -481,7 +497,7 @@ namespace RealisticRadio
                 {
                     if (band == null)
                     {
-                        Debug.LogWarning($"[RealisticRadio] {where}: непонятный диапазон «{token}» (нужно {BandNames()} или «имя мин-макс» в МГц)");
+                        Debug.LogWarning($"[RealisticRadio] {where}: unknown band \"{token}\" (expected {BandNames()} or \"name min-max\" in MHz)");
                         continue;
                     }
                     min = band.min;
@@ -554,7 +570,7 @@ namespace RealisticRadio
             bool filter;
             a.bandFilter = bool.TryParse(node.GetValue("filter"), out filter) ? filter : a.kind == StationAntennaKind.Dish;
 
-            string where = $"станция «{st.name}»";
+            string where = $"station \"{st.name}\"";
             List<StationAntenna> feeds;
             string receive = node.GetValue("receive");
             if (!string.IsNullOrEmpty(receive) || (a.IsDish && !node.HasValue("minFrequency") && !node.HasValue("maxFrequency")))
@@ -576,7 +592,7 @@ namespace RealisticRadio
             }
             if (feeds.Count == 0)
             {
-                Debug.LogWarning($"[RealisticRadio] {where}: ни одного диапазона приёма - ставлю {DEFAULT_RECEIVE}");
+                Debug.LogWarning($"[RealisticRadio] {where}: no receive bands, using {DEFAULT_RECEIVE}");
                 feeds = Feeds(a, DEFAULT_RECEIVE, where);
             }
 
@@ -605,7 +621,7 @@ namespace RealisticRadio
                 double kelvin;
                 if (w.Length < 2 || !double.TryParse(w[1], NumberStyles.Float, CultureInfo.InvariantCulture, out kelvin) || kelvin <= 0)
                 {
-                    if (raw.Trim().Length > 0) Debug.LogWarning($"[RealisticRadio] {where}: непонятный шум «{raw.Trim()}» (нужно «диапазон К», например «Ka 27»)");
+                    if (raw.Trim().Length > 0) Debug.LogWarning($"[RealisticRadio] {where}: unknown noise \"{raw.Trim()}\" (expected \"band K\", for example \"Ka 27\")");
                     continue;
                 }
                 StationAntenna feed = FeedOf(feeds, w[0]);
@@ -644,7 +660,7 @@ namespace RealisticRadio
                 if (w.Length < 2 || !double.TryParse(w[1], NumberStyles.Float, CultureInfo.InvariantCulture, out power)) power = defaultPower;
                 StationAntenna feed = FeedOf(feeds, w[0]);
                 if (feed != null) feed.uplinkW = power > 0 ? power : DefaultUplink(feed);
-                else Debug.LogWarning($"[RealisticRadio] {where}: передатчик «{token}» - у станции нет приёма в этом диапазоне, пропущен");
+                else Debug.LogWarning($"[RealisticRadio] {where}: transmitter \"{token}\" skipped, the station has no receive feed in this band");
             }
         }
 

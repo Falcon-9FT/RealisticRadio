@@ -31,13 +31,13 @@ namespace RealisticRadio
         [KSPField] public bool dedicated = false;       // антенна прибора в той же детали (лопатка ответчика): радиоблоки через неё не передают
 
         // Игрок
-        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "Сопровождение"),
-         UI_Toggle(enabledText = "следит за целью", disabledText = "по оси детали")]
+        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "Tracking"),
+         UI_Toggle(enabledText = "follows target", disabledText = "along part axis")]
         public bool tracking = false;
         [KSPField(isPersistant = true)] public float lnbFrequencyMHz = -1f; // -1 - как по умолчанию
         [KSPField(isPersistant = true)] public bool lnbEnabled = true;
 
-        [KSPField(guiActive = true, guiActiveEditor = true, guiName = "Антенна")]
+        [KSPField(guiActive = true, guiActiveEditor = true, guiName = "Antenna")]
         public string status = "";
 
         // Частоты, на которых показываются потери на приём: APT, UHF, ADS-B, HRPT, S и X
@@ -60,7 +60,7 @@ namespace RealisticRadio
 
         public double LnbHz { get { return LnbActive ? LnbMHz * 1e6 : 0.0; } }
 
-        public string Title { get { return part != null && part.partInfo != null ? part.partInfo.title : part != null ? part.name : "антенна"; } }
+        public string Title { get { return part != null && part.partInfo != null ? part.partInfo.title : part != null ? part.name : Loc.T("#rr_ant_title"); } }
 
         // У тарелки усиление G = 0.55·(π·D/λ)² и луч ≈ 70·λ/D зависят от частоты; у штыря - значения из конфига
         public double GainAt(double frequencyMHz)
@@ -139,10 +139,11 @@ namespace RealisticRadio
         {
             if (resolved) return;
             resolved = true;
+            if (!string.IsNullOrEmpty(kind)) kind = Loc.T(kind);   // в конфиге - тег или свободный текст
             if (minFrequencyMHz > 0 && maxFrequencyMHz > minFrequencyMHz)
             {
                 if (noiseTemperature <= 0) noiseTemperature = 150f;
-                if (string.IsNullOrEmpty(kind)) kind = dishDiameter > 0 ? $"тарелка ⌀{dishDiameter:0.#} м" : beamwidth >= 180 ? "всенаправленная" : "направленная";
+                if (string.IsNullOrEmpty(kind)) kind = dishDiameter > 0 ? Loc.T("#rr_kind_dish_plain", $"{dishDiameter:0.#}") : Loc.T(beamwidth >= 180 ? "#rr_kind_omni_plain" : "#rr_kind_directional_plain");
                 return;
             }
 
@@ -208,21 +209,37 @@ namespace RealisticRadio
         {
             base.OnStart(state);
             Resolve();
+            LocalizeUi();
             Fields["tracking"].guiActive = Fields["tracking"].guiActiveEditor = IsDirectional;
             UpdateStatus();
+        }
+
+        // Подписи меню детали: в атрибутах - английские, Localizer показал бы сырые теги для языка без таблицы
+        private void LocalizeUi()
+        {
+            BaseField trackingField = Fields["tracking"];
+            trackingField.guiName = Loc.T("#rr_ant_tracking");
+            foreach (UI_Toggle toggle in new[] { trackingField.uiControlFlight as UI_Toggle, trackingField.uiControlEditor as UI_Toggle })
+            {
+                if (toggle == null) continue;
+                toggle.enabledText = Loc.T("#rr_ant_tracking_on");
+                toggle.disabledText = Loc.T("#rr_ant_tracking_off");
+            }
+            Fields["status"].guiName = Loc.T("#rr_ant_status");
+            Events["ToggleWindow"].guiName = Loc.T("#rr_ant_window_event");
         }
 
         public override string GetInfo()
         {
             Resolve();
-            string info = $"<b>Антенна: {kind}</b>\n";
-            info += $"Согласована: {Mhz(minFrequencyMHz)}–{Mhz(maxFrequencyMHz)} МГц (КСВ ≤ 2), другие частоты - с потерями\n";
+            string info = "<b>" + Loc.T("#rr_ant_info_title", kind) + "</b>\n";
+            info += Loc.T("#rr_ant_info_matched", Mhz(minFrequencyMHz), Mhz(maxFrequencyMHz)) + "\n";
             info += IsDirectional
-                ? $"Усиление {GainAt(BandCenterMHz):0} dBi, луч {BeamwidthAt(BandCenterMHz):0.#}°\n"
-                : $"Усиление {antennaGain:0.#} dBi, всенаправленная\n";
-            if (LnbMHz > 0) info += $"Конвертер на приём: гетеродин {Mhz(LnbMHz)} МГц\n";
-            info += RadioHooks.PlusInstalled ? "Передаёт и принимает то, что задаст радиоблок аппарата" : "Через неё идёт связь с Землёй и ретрансляторами";
-            if (IsAutomatic) info += "\n<color=#c3c2b7>Характеристики подобраны по названию детали</color>";
+                ? Loc.T("#rr_ant_info_dir", $"{GainAt(BandCenterMHz):0}", $"{BeamwidthAt(BandCenterMHz):0.#}") + "\n"
+                : Loc.T("#rr_ant_info_omni", $"{antennaGain:0.#}") + "\n";
+            if (LnbMHz > 0) info += Loc.T("#rr_ant_info_lnb", Mhz(LnbMHz)) + "\n";
+            info += Loc.T(RadioHooks.PlusInstalled ? "#rr_ant_info_plus" : "#rr_ant_info_core");
+            if (IsAutomatic) info += "\n<color=#c3c2b7>" + Loc.T("#rr_ant_info_auto") + "</color>";
             return info;
         }
 
@@ -237,8 +254,8 @@ namespace RealisticRadio
         {
             Resolve();
             return maxFrequencyMHz >= 1000
-                ? $"{minFrequencyMHz / 1000.0:0.0##}–{maxFrequencyMHz / 1000.0:0.0##} ГГц"
-                : $"{minFrequencyMHz:0.#}–{maxFrequencyMHz:0.#} МГц";
+                ? $"{minFrequencyMHz / 1000.0:0.0##}–{maxFrequencyMHz / 1000.0:0.0##} " + Loc.T("#rr_unit_ghz")
+                : $"{minFrequencyMHz:0.#}–{maxFrequencyMHz:0.#} " + Loc.T("#rr_unit_mhz");
         }
 
         // Антенны аппарата (у загруженного - по деталям)
@@ -273,7 +290,7 @@ namespace RealisticRadio
 
         // --- Окно антенны: согласование и конвертер ---
 
-        [KSPEvent(guiActive = true, guiActiveEditor = true, guiName = "Антенна: конвертер и согласование")]
+        [KSPEvent(guiActive = true, guiActiveEditor = true, guiName = "Antenna: converter and matching")]
         public void ToggleWindow()
         {
             showWindow = !showWindow;
@@ -284,30 +301,29 @@ namespace RealisticRadio
         {
             if (!showWindow) return;
             GUI.skin = HighLogic.Skin;
-            windowRect = GUILayout.Window(GetInstanceID(), windowRect, DrawWindow, "Антенна: " + Title);
+            windowRect = GUILayout.Window(GetInstanceID(), windowRect, DrawWindow, Loc.T("#rr_ant_info_title", Title));
         }
 
         private void DrawWindow(int id)
         {
             GUILayout.BeginVertical();
-            GUILayout.Label($"{kind}. Согласована на {Mhz(minFrequencyMHz)}–{Mhz(maxFrequencyMHz)} МГц (КСВ ≤ 2).\n" +
-                            "Принимает и передаёт и другие частоты, но с потерями:");
+            GUILayout.Label(Loc.T("#rr_ant_win_matched", kind, Mhz(minFrequencyMHz), Mhz(maxFrequencyMHz)));
             var losses = new List<string>();
-            foreach (float probe in probeFrequencies) losses.Add($"{probe:0.#}: {ReceiveLossDb(probe):0.#} дБ");
+            foreach (float probe in probeFrequencies) losses.Add($"{probe:0.#}: {ReceiveLossDb(probe):0.#} " + Loc.T("#rr_unit_db"));
             GUILayout.Label(string.Join("   ", losses.ToArray()));
             GUILayout.Label(IsDirectional
-                ? $"Направленная: {GainAt(BandCenterMHz):0} dBi, луч {BeamwidthAt(BandCenterMHz):0.#}° на середине полосы"
-                : $"Всенаправленная, {antennaGain:0.#} dBi");
+                ? Loc.T("#rr_ant_win_dir", $"{GainAt(BandCenterMHz):0}", $"{BeamwidthAt(BandCenterMHz):0.#}")
+                : Loc.T("#rr_ant_win_omni", $"{antennaGain:0.#}"));
 
             if (IsDirectional)
             {
-                bool newTracking = GUILayout.Toggle(tracking, " Поворотное устройство: на приёме смотрит на выбранную цель, на передаче - на приёмник");
+                bool newTracking = GUILayout.Toggle(tracking, " " + Loc.T("#rr_ant_win_gimbal"));
                 if (newTracking != tracking) Apply(a => a.tracking = newTracking);
             }
 
             GUILayout.Space(6);
             GUILayout.BeginHorizontal();
-            bool newEnabled = GUILayout.Toggle(lnbEnabled, " Конвертер (LNB) на приёме, гетеродин, МГц:");
+            bool newEnabled = GUILayout.Toggle(lnbEnabled, " " + Loc.T("#rr_ant_win_lnb"));
             if (newEnabled != lnbEnabled) Apply(a => a.lnbEnabled = newEnabled);
             lnbText = GUILayout.TextField(lnbText, 10, GUILayout.Width(80));
             GUILayout.EndHorizontal();
@@ -319,12 +335,12 @@ namespace RealisticRadio
                 Apply(a => a.lnbFrequencyMHz = typed);
             }
             GUILayout.Label(LnbActive
-                ? $"SDR видит частоту минус гетеродин: {Mhz(minFrequencyMHz - LnbMHz)}–{Mhz(maxFrequencyMHz - LnbMHz)} МГц; фильтр конвертера давит всё вне полосы антенны"
-                : "Без конвертера SDR принимает частоту как есть: RTL-SDR до 1766 МГц, Airspy до 1800 МГц");
+                ? Loc.T("#rr_ant_win_lnb_on", Mhz(minFrequencyMHz - LnbMHz), Mhz(maxFrequencyMHz - LnbMHz))
+                : Loc.T("#rr_ant_win_lnb_off"));
 
-            if (HighLogic.LoadedSceneIsFlight && !IsDeployed()) GUILayout.Label("<color=orange>Антенна сложена - раскройте её</color>");
+            if (HighLogic.LoadedSceneIsFlight && !IsDeployed()) GUILayout.Label(Loc.T("#rr_ant_win_folded"));
             GUILayout.Space(6);
-            if (GUILayout.Button("Закрыть")) showWindow = false;
+            if (GUILayout.Button(Loc.T("#rr_close"))) showWindow = false;
             GUILayout.EndVertical();
             GUI.DragWindow();
         }
